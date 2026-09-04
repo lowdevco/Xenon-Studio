@@ -1,0 +1,34 @@
+# Virtual environments
+.env
+env/
+
+# Compiled Python files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Django specific
+db.sqlite3
+db.sqlite3-journal
+*.log
+*.pot
+local_settings.py
+media/
+
+# Static files 
+
+static/
+
+# IDE and OS file
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+*.egg-info/
+dist/
+build/   
+
+# Misc ignores
+
+xenon-docs/
