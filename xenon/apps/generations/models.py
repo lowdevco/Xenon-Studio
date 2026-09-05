@@ -29,14 +29,24 @@ class Generation(models.Model):
     completed_at = models.DateTimeField(null=True, blank=True)
 
     # Advanced API Configuration
-    reference_image = models.FileField(upload_to='references/images/', null=True, blank=True)
-    reference_video = models.FileField(upload_to='references/videos/', null=True, blank=True)
-    reference_audio = models.FileField(upload_to='references/audio/', null=True, blank=True)
-    
     generate_audio = models.BooleanField(default=True)
     ratio = models.CharField(max_length=10, default='16:9')
+    resolution = models.CharField(max_length=20, default='720p')
     duration = models.IntegerField(default=5)
     watermark = models.BooleanField(default=False)
 
     def __str__(self):
         return f"Generation {self.id} ({self.status})"
+
+class ReferenceMedia(models.Model):
+    class MediaType(models.TextChoices):
+        IMAGE = 'image', 'Image'
+        VIDEO = 'video', 'Video'
+        AUDIO = 'audio', 'Audio'
+        
+    generation = models.ForeignKey(Generation, on_delete=models.CASCADE, related_name='reference_media')
+    media_type = models.CharField(max_length=10, choices=MediaType.choices)
+    file = models.FileField(upload_to='references/multi/')
+    
+    def __str__(self):
+        return f"{self.media_type} for Generation {self.generation.id}"

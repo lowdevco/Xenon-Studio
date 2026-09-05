@@ -26,30 +26,32 @@ class BytePlusService:
         ]
         
         # Append reference media if provided, turning relative paths into absolute URLs
-        if generation.reference_image:
-            content_list.append({
-                "type": "image_url",
-                "image_url": {"url": f"{base_url}{generation.reference_image.url}"},
-                "role": "reference_image"
-            })
-        if generation.reference_video:
-            content_list.append({
-                "type": "video_url",
-                "video_url": {"url": f"{base_url}{generation.reference_video.url}"},
-                "role": "reference_video"
-            })
-        if generation.reference_audio:
-            content_list.append({
-                "type": "audio_url",
-                "audio_url": {"url": f"{base_url}{generation.reference_audio.url}"},
-                "role": "reference_audio"
-            })
+        for media in generation.reference_media.all():
+            if media.media_type == 'image':
+                content_list.append({
+                    "type": "image_url",
+                    "image_url": {"url": f"{base_url}{media.file.url}"},
+                    "role": "reference_image"
+                })
+            elif media.media_type == 'video':
+                content_list.append({
+                    "type": "video_url",
+                    "video_url": {"url": f"{base_url}{media.file.url}"},
+                    "role": "reference_video"
+                })
+            elif media.media_type == 'audio':
+                content_list.append({
+                    "type": "audio_url",
+                    "audio_url": {"url": f"{base_url}{media.file.url}"},
+                    "role": "reference_audio"
+                })
 
         payload = {
             "model": generation.model_id,
             "content": content_list,
             "generate_audio": generation.generate_audio,
             "ratio": generation.ratio,
+            "resolution": generation.resolution,
             "duration": generation.duration,
             "watermark": generation.watermark
         }

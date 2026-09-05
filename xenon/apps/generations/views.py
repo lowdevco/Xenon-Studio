@@ -2,39 +2,46 @@ import json
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import ensure_csrf_cookie
-from .models import Generation
+from .models import Generation, ReferenceMedia
 from .tasks import generate_video_task
 
 @ensure_csrf_cookie
 def index(request):
-    return render(request, 'generations/index.html')
+    generations = Generation.objects.all().order_by('created_at')
+    return render(request, 'pages/home.html', {'generations': generations})
 
 def create_generation(request):
     if request.method == 'POST':
         try:
-            # When files are uploaded, data comes in request.POST and request.FILES
             prompt = request.POST.get('prompt')
             if not prompt:
                 return JsonResponse({'error': 'Prompt is required'}, status=400)
+                
+            images = request.FILES.getlist('reference_image')
+            videos = request.FILES.getlist('reference_video')
+            audios = request.FILES.getlist('reference_audio')
+            
+            if len(images) > 30: return JsonResponse({'error': 'Maximum 30 images allowed'}, status=400)
+            if len(videos) > 10: return JsonResponse({'error': 'Maximum 10 videos allowed'}, status=400)
+            if len(audios) > 10: return JsonResponse({'error': 'Maximum 10 audios allowed'}, status=400)
             
             # Create the database record
-            generation = Generation(
+            generation = Generation.objects.create(
                 prompt=prompt, 
                 status=Generation.Status.QUEUED,
                 generate_audio=request.POST.get('generate_audio') == 'true',
                 ratio=request.POST.get('ratio', '16:9'),
+                resolution=request.POST.get('resolution', '720p'),
                 duration=int(request.POST.get('duration', 5)),
                 watermark=request.POST.get('watermark') == 'true',
             )
 
-            if 'reference_image' in request.FILES:
-                generation.reference_image = request.FILES['reference_image']
-            if 'reference_video' in request.FILES:
-                generation.reference_video = request.FILES['reference_video']
-            if 'reference_audio' in request.FILES:
-                generation.reference_audio = request.FILES['reference_audio']
-                
-            generation.save()
+            for img in images:
+                ReferenceMedia.objects.create(generation=generation, media_type=ReferenceMedia.MediaType.IMAGE, file=img)
+            for vid in videos:
+                ReferenceMedia.objects.create(generation=generation, media_type=ReferenceMedia.MediaType.VIDEO, file=vid)
+            for aud in audios:
+                ReferenceMedia.objects.create(generation=generation, media_type=ReferenceMedia.MediaType.AUDIO, file=aud)
             
             # Get the base URL from the current request domain (e.g. localhost or ngrok domain)
             base_url = request.build_absolute_uri('/')[:-1]

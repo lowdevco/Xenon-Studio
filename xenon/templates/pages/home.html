@@ -1,0 +1,414 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<!-- Chat Feed Area -->
+<div id="chatFeed" class="h-full w-full overflow-y-auto pb-48 px-4 md:px-12 pt-8 flex flex-col space-y-8 scroll-smooth scrollbar-hide">
+    
+    <!-- Empty State -->
+    {% if not generations %}
+    <div class="flex-1 flex flex-col items-center justify-center text-center mt-20" id="emptyState">
+        <div class="w-16 h-16 bg-brand-surface rounded-2xl border border-brand-border flex items-center justify-center mb-6 shadow-xl">
+            <svg class="w-8 h-8 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+        </div>
+        <h1 class="text-3xl font-semibold text-brand-text mb-2">Create a Video</h1>
+        <p class="text-brand-muted max-w-md">Type a prompt below and attach any reference images, videos, or audio. Powered by Seedance 2.5.</p>
+    </div>
+    {% endif %}
+
+    <!-- Chat History -->
+    {% for gen in generations %}
+    <!-- User Prompt Bubble -->
+    <div class="flex flex-col items-end w-full space-y-2">
+        <!-- Media Previews in User Message -->
+        {% if gen.reference_media.all %}
+        <div class="flex flex-wrap justify-end gap-2 max-w-2xl">
+            {% for media in gen.reference_media.all %}
+                {% if media.media_type == 'image' %}
+                <img src="{{ media.file.url }}" onerror="this.onerror=null; this.src='https://placehold.co/80x80/18181b/a1a1aa?text=Image+Lost'" class="w-20 h-20 object-cover rounded-lg border border-brand-border">
+                {% elif media.media_type == 'video' %}
+                <div class="w-20 h-20 bg-brand-surface rounded-lg border border-brand-border flex items-center justify-center relative">
+                    <svg class="w-6 h-6 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg>
+                </div>
+                {% elif media.media_type == 'audio' %}
+                <div class="w-20 h-20 bg-brand-surface rounded-lg border border-brand-border flex items-center justify-center relative">
+                    <svg class="w-6 h-6 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                </div>
+                {% endif %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        <!-- Text Bubble -->
+        <div class="bg-[#27272a] text-brand-text px-5 py-3.5 rounded-2xl rounded-tr-sm max-w-2xl text-sm leading-relaxed shadow-sm">
+            <p>{{ gen.prompt }}</p>
+            <div class="flex flex-wrap gap-2 mt-3 text-xs text-brand-muted/70">
+                <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">{{ gen.resolution }}</span>
+                <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">{{ gen.ratio }}</span>
+                <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">{{ gen.duration }}s</span>
+                {% if gen.generate_audio %}<span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">Audio</span>{% endif %}
+                {% if gen.watermark %}<span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">Watermark</span>{% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Response Bubble -->
+    <div class="flex items-start w-full space-x-4 mb-4">
+        <div class="w-8 h-8 rounded bg-brand flex items-center justify-center shrink-0 mt-1">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <div class="flex-1 max-w-4xl">
+            {% if gen.status == 'COMPLETED' and gen.video_file %}
+            <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md">
+                <video src="{{ gen.video_file.url }}" controls class="max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\'><svg class=\'w-8 h-8 mb-2 opacity-40\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\'></path></svg><span class=\'text-sm font-medium\'>Video Lost</span><span class=\'text-xs opacity-60 mt-1\'>File removed from server</span></div>'"></video>
+            </div>
+            {% elif gen.status == 'FAILED' %}
+            <div class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl rounded-tl-sm text-sm">
+                Generation failed: {{ gen.error_message|default:"Unknown error" }}
+            </div>
+            {% else %}
+            <!-- Old hanging task -->
+            <div class="bg-brand-surface border border-brand-border px-5 py-4 rounded-xl rounded-tl-sm inline-block shadow-md">
+                <div class="flex items-center space-x-3">
+                    <svg class="w-5 h-5 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="text-sm text-brand-muted">Processing... (Session Ended)</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Floating Input Box Area -->
+<div class="absolute bottom-0 left-0 right-0 p-4 md:p-6 bg-gradient-to-t from-brand-bg via-brand-bg to-transparent pb-6 md:pb-8">
+    <div class="max-w-4xl mx-auto">
+        <!-- Advanced Settings Popover -->
+        <div id="advancedSettings" class="hidden mb-3 bg-brand-surface border border-brand-border rounded-xl p-4 shadow-2xl transition-all">
+            <div class="flex flex-wrap items-center gap-4 text-sm text-brand-muted">
+                <div class="flex items-center space-x-2">
+                    <label>Ratio:</label>
+                    <select id="ratio" class="bg-brand-bg border border-brand-border rounded px-2 py-1 focus:outline-none">
+                        <option value="16:9">16:9</option>
+                        <option value="9:16">9:16</option>
+                        <option value="1:1">1:1</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <label>Resolution:</label>
+                    <select id="resolution" class="bg-brand-bg border border-brand-border rounded px-2 py-1 focus:outline-none">
+                        <option value="720p">720p</option>
+                        <option value="1080p">1080p</option>
+                        <option value="480p">480p</option>
+                    </select>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <label>Duration:</label>
+                    <select id="duration" class="bg-brand-bg border border-brand-border rounded px-2 py-1 focus:outline-none">
+                        <option value="5">5s</option>
+                        <option value="10">10s</option>
+                        <option value="15">15s</option>
+                        <option value="20">20s</option>
+                        <option value="30">30s</option>
+                    </select>
+                </div>
+                <label class="flex items-center cursor-pointer ml-auto">
+                    <input type="checkbox" id="generateAudio" checked class="mr-2"> Audio
+                </label>
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" id="watermark" class="mr-2"> Watermark
+                </label>
+            </div>
+        </div>
+
+        <form id="chatForm" class="relative bg-brand-surface border border-brand-border rounded-2xl shadow-xl focus-within:ring-1 focus-within:ring-brand/50 focus-within:border-brand/50 transition-all flex flex-col">
+            
+            <!-- Dynamic Image/Media Previews Area -->
+            <div id="mediaPreviews" class="flex flex-wrap gap-2 px-4 pt-3 hidden">
+                <!-- Javascript will inject mini thumbnails here -->
+            </div>
+
+            <div class="flex items-end p-2 pb-2">
+                <!-- Attach Menu Button -->
+                <button type="button" id="attachBtn" class="p-2.5 text-brand-muted hover:text-brand-text hover:bg-brand-bg rounded-xl transition-colors shrink-0">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"></path></svg>
+                </button>
+                
+                <!-- Hidden Inputs -->
+                <input type="file" id="imageInput" accept="image/*" multiple class="hidden">
+                <input type="file" id="videoInput" accept="video/*" multiple class="hidden">
+                <input type="file" id="audioInput" accept="audio/*" multiple class="hidden">
+
+                <!-- Textarea -->
+                <textarea id="promptInput" rows="1" class="w-full max-h-32 bg-transparent border-0 resize-none focus:ring-0 text-sm py-3 px-3 text-brand-text placeholder-brand-muted/70 scrollbar-hide" placeholder="Message Xenon Studio..."></textarea>
+                
+                <div class="flex items-center space-x-1 shrink-0 px-2 pb-1.5">
+                    <!-- Advanced Options Toggle -->
+                    <button type="button" id="settingsBtn" class="p-2 text-brand-muted hover:text-brand-text hover:bg-brand-bg rounded-xl transition-colors">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                    </button>
+                    <!-- Submit Button -->
+                    <button type="submit" id="sendBtn" class="p-2 bg-brand text-white rounded-xl hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                        <svg class="w-5 h-5 ml-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </form>
+        <p class="text-center text-[10px] text-brand-muted/50 mt-3">Xenon Studio can make mistakes. Consider verifying reference media limitations.</p>
+    </div>
+</div>
+
+<!-- Template for injecting new messages via JS -->
+<template id="userMessageTpl">
+    <div class="flex flex-col items-end w-full space-y-2 mb-2 slide-up">
+        <div class="flex flex-wrap justify-end gap-2 max-w-2xl media-container"></div>
+        <div class="bg-[#27272a] text-brand-text px-5 py-3.5 rounded-2xl rounded-tr-sm max-w-2xl text-sm leading-relaxed shadow-sm">
+            <p class="msg-text"></p>
+            <div class="msg-settings flex flex-wrap gap-2 mt-3 text-xs text-brand-muted/70">
+                <!-- Javascript will inject settings tags here -->
+            </div>
+        </div>
+    </div>
+</template>
+
+<template id="aiMessageTpl">
+    <div class="flex items-start w-full space-x-4 mb-6 slide-up">
+        <div class="w-8 h-8 rounded bg-brand flex items-center justify-center shrink-0 mt-1">
+            <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <div class="flex-1 max-w-4xl response-container">
+            <div class="bg-brand-surface border border-brand-border px-5 py-4 rounded-xl rounded-tl-sm inline-block w-full max-w-md shadow-md">
+                <div class="flex items-center space-x-3 mb-3">
+                    <div class="relative w-5 h-5 shrink-0">
+                        <div class="absolute inset-0 rounded-full border-t-2 border-brand animate-spin"></div>
+                    </div>
+                    <span class="text-sm font-medium text-brand-text status-text">Submitting to Seedance...</span>
+                    <span class="text-xs font-bold text-brand ml-auto progress-percent">0%</span>
+                </div>
+                <div class="w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
+                    <div class="bg-brand h-1.5 rounded-full w-0 transition-all duration-1000 ease-out progress-bar"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<style>
+    .slide-up { animation: slideUp 0.3s ease-out forwards; }
+    @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+<script>
+    const chatFeed = document.getElementById('chatFeed');
+    const promptInput = document.getElementById('promptInput');
+    const chatForm = document.getElementById('chatForm');
+    
+    // Auto-expand textarea
+    promptInput.addEventListener('input', function() {
+        this.style.height = 'auto';
+        this.style.height = (this.scrollHeight) + 'px';
+    });
+    
+    // Press Enter to submit (Shift+Enter for newline)
+    promptInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+
+    // Settings Toggle
+    document.getElementById('settingsBtn').addEventListener('click', () => {
+        document.getElementById('advancedSettings').classList.toggle('hidden');
+    });
+
+    // File Attachments & Previews
+    let attachedFiles = { image: [], video: [], audio: [] };
+    const mediaPreviews = document.getElementById('mediaPreviews');
+    
+    // Just map a quick file select to images for now. A full app would have a popover menu.
+    document.getElementById('attachBtn').addEventListener('click', () => document.getElementById('imageInput').click());
+
+    document.getElementById('imageInput').addEventListener('change', handleFileSelect('image'));
+    document.getElementById('videoInput').addEventListener('change', handleFileSelect('video'));
+    document.getElementById('audioInput').addEventListener('change', handleFileSelect('audio'));
+
+    function handleFileSelect(type) {
+        return function(e) {
+            const files = Array.from(e.target.files);
+            // Validation limits
+            if (attachedFiles.image.length + files.length > 30 && type === 'image') return alert('Max 30 images');
+            if (attachedFiles.video.length + files.length > 10 && type === 'video') return alert('Max 10 videos');
+            if (attachedFiles.audio.length + files.length > 10 && type === 'audio') return alert('Max 10 audios');
+
+            files.forEach(file => {
+                attachedFiles[type].push(file);
+                
+                // Read & Render Preview
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    mediaPreviews.classList.remove('hidden');
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'relative w-12 h-12 rounded-lg border border-brand-border bg-brand-bg group overflow-hidden shrink-0';
+                    
+                    if (type === 'image') {
+                        wrapper.innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`;
+                    } else if (type === 'video') {
+                        wrapper.innerHTML = `<div class="w-full h-full flex items-center justify-center text-brand-muted"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div>`;
+                    }
+                    
+                    // Remove button
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'absolute top-0.5 right-0.5 w-4 h-4 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity';
+                    removeBtn.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                    removeBtn.onclick = () => {
+                        wrapper.remove();
+                        attachedFiles[type] = attachedFiles[type].filter(f => f !== file);
+                        if (Object.values(attachedFiles).flat().length === 0) mediaPreviews.classList.add('hidden');
+                    };
+                    wrapper.appendChild(removeBtn);
+                    mediaPreviews.appendChild(wrapper);
+                };
+                reader.readAsDataURL(file);
+            });
+            // Reset input so you can select the same file again if needed
+            e.target.value = '';
+        }
+    }
+
+    // Submit Logic
+    chatForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const prompt = promptInput.value.trim();
+        if (!prompt) return;
+
+        const emptyState = document.getElementById('emptyState');
+        if(emptyState) emptyState.style.display = 'none';
+
+        // Get values
+        const ratioVal = document.getElementById('ratio').value;
+        const resolutionVal = document.getElementById('resolution').value;
+        const durationVal = document.getElementById('duration').value;
+        const audioVal = document.getElementById('generateAudio').checked;
+        const watermarkVal = document.getElementById('watermark').checked;
+
+        // 1. Render User Message instantly
+        const userTpl = document.getElementById('userMessageTpl').content.cloneNode(true);
+        userTpl.querySelector('.msg-text').textContent = prompt;
+        
+        // Inject settings tags
+        const settingsContainer = userTpl.querySelector('.msg-settings');
+        const tagsHTML = `
+            <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">${resolutionVal}</span>
+            <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">${ratioVal}</span>
+            <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">${durationVal}s</span>
+            ${audioVal ? '<span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">Audio</span>' : ''}
+            ${watermarkVal ? '<span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">Watermark</span>' : ''}
+        `;
+        settingsContainer.innerHTML = tagsHTML;
+        
+        // Copy previews to user bubble
+        const mediaContainer = userTpl.querySelector('.media-container');
+        Array.from(mediaPreviews.children).forEach(preview => {
+            const clone = preview.cloneNode(true);
+            const rmBtn = clone.querySelector('button');
+            if(rmBtn) rmBtn.remove(); // No remove buttons in chat history
+            clone.className = 'w-16 h-16 rounded-lg border border-brand-border bg-brand-bg overflow-hidden';
+            mediaContainer.appendChild(clone);
+        });
+        chatFeed.appendChild(userTpl);
+
+        // 2. Render AI Loading Bubble instantly
+        const aiTpl = document.getElementById('aiMessageTpl').content.cloneNode(true);
+        const aiResponseContainer = aiTpl.querySelector('.response-container');
+        const statusText = aiTpl.querySelector('.status-text');
+        chatFeed.appendChild(aiTpl);
+        chatFeed.scrollTo({ top: chatFeed.scrollHeight, behavior: 'smooth' });
+
+        // 3. Clear Input
+        promptInput.value = '';
+        promptInput.style.height = 'auto';
+        mediaPreviews.innerHTML = '';
+        mediaPreviews.classList.add('hidden');
+
+        // 4. Build FormData
+        const fd = new FormData();
+        fd.append('prompt', prompt);
+        fd.append('ratio', ratioVal);
+        fd.append('resolution', resolutionVal);
+        fd.append('duration', durationVal);
+        fd.append('generate_audio', audioVal ? 'true' : 'false');
+        fd.append('watermark', watermarkVal ? 'true' : 'false');
+        
+        attachedFiles.image.forEach(f => fd.append('reference_image', f));
+        attachedFiles.video.forEach(f => fd.append('reference_video', f));
+        attachedFiles.audio.forEach(f => fd.append('reference_audio', f));
+        
+        // Clear attached files logic
+        attachedFiles = { image: [], video: [], audio: [] };
+
+        try {
+            const response = await fetch('/generations/create/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken },
+                body: fd
+            });
+            const data = await response.json();
+            if (response.ok) {
+                pollGeneration(data.generation_id, aiResponseContainer);
+            } else {
+                statusText.textContent = 'Error: ' + data.error;
+                statusText.classList.add('text-red-400');
+            }
+        } catch (err) {
+            statusText.textContent = 'Network Error';
+            statusText.classList.add('text-red-400');
+        }
+    });
+
+    function pollGeneration(genId, container) {
+        const textElement = container.querySelector('.status-text');
+        const progressPercent = container.querySelector('.progress-percent');
+        const progressBar = container.querySelector('.progress-bar');
+        
+        if (textElement) textElement.textContent = 'Rendering Video...';
+        
+        let fakeProgress = 5;
+        let pInterval = setInterval(() => {
+            if (fakeProgress < 90) {
+                fakeProgress += (90 - fakeProgress) * 0.02;
+                if (progressBar) progressBar.style.width = fakeProgress + '%';
+                if (progressPercent) progressPercent.textContent = Math.round(fakeProgress) + '%';
+            }
+        }, 1000);
+        
+        const poll = setInterval(async () => {
+            try {
+                const res = await fetch(`/generations/status/${genId}/`);
+                const data = await res.json();
+                
+                if (data.status === 'COMPLETED') {
+                    clearInterval(poll);
+                    clearInterval(pInterval);
+                    container.innerHTML = `
+                        <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md">
+                            <video src="${data.video_url}" controls autoplay class="max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\\'><svg class=\\'w-8 h-8 mb-2 opacity-40\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\\'></path></svg><span class=\\'text-sm font-medium\\'>Video Lost</span><span class=\\'text-xs opacity-60 mt-1\\'>File removed from server</span></div>'"></video>
+                        </div>
+                    `;
+                    chatFeed.scrollTo({ top: chatFeed.scrollHeight, behavior: 'smooth' });
+                } else if (data.status === 'FAILED') {
+                    clearInterval(poll);
+                    clearInterval(pInterval);
+                    container.innerHTML = `
+                        <div class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl rounded-tl-sm text-sm">
+                            Generation failed: ${data.error_message || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (e) { console.error('Poll err', e); }
+        }, 5000);
+    }
+
+    // Scroll to bottom on initial load
+    setTimeout(() => { chatFeed.scrollTop = chatFeed.scrollHeight; }, 100);
+</script>
+{% endblock %}
