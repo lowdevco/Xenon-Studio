@@ -32,3 +32,6 @@ build/
 # Misc ignores
 
 xenon-docs/
+Reference/
+Ai-Restrictions.md
+Seedance-ref/
