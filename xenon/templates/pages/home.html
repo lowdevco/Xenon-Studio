@@ -48,17 +48,18 @@
                 {% if gen.watermark %}<span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">Watermark</span>{% endif %}
             </div>
         </div>
+        <span class="text-[10px] text-brand-muted mt-1 px-1">{{ gen.created_at|date:"h:i A" }}</span>
     </div>
 
     <!-- AI Response Bubble -->
-    <div class="flex items-start w-full space-x-4 mb-4">
+    <div class="flex items-start w-full space-x-2 md:space-x-4 mb-4">
         <div class="w-8 h-8 rounded bg-brand flex items-center justify-center shrink-0 mt-1">
             <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
         </div>
-        <div class="flex-1 max-w-4xl">
+        <div class="flex-1 max-w-4xl overflow-hidden">
             {% if gen.status == 'COMPLETED' and gen.video_file %}
-            <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md">
-                <video src="{{ gen.video_file.url }}" controls class="max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\'><svg class=\'w-8 h-8 mb-2 opacity-40\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\'></path></svg><span class=\'text-sm font-medium\'>Video Lost</span><span class=\'text-xs opacity-60 mt-1\'>File removed from server</span></div>'"></video>
+            <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md max-w-full">
+                <video src="{{ gen.video_file.url }}" controls class="max-w-full max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\'><svg class=\'w-8 h-8 mb-2 opacity-40\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\'></path></svg><span class=\'text-sm font-medium\'>Video Lost</span><span class=\'text-xs opacity-60 mt-1\'>File removed from server</span></div>'"></video>
             </div>
             {% elif gen.status == 'FAILED' %}
             <div class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl rounded-tl-sm text-sm">
@@ -66,13 +67,14 @@
             </div>
             {% else %}
             <!-- Old hanging task -->
-            <div class="bg-brand-surface border border-brand-border px-5 py-4 rounded-xl rounded-tl-sm inline-block shadow-md">
+            <div class="bg-red-500/5 border border-red-500/10 px-5 py-4 rounded-xl rounded-tl-sm inline-block shadow-md">
                 <div class="flex items-center space-x-3">
-                    <svg class="w-5 h-5 text-brand-muted" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                    <span class="text-sm text-brand-muted">Processing... (Session Ended)</span>
+                    <svg class="w-5 h-5 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span class="text-sm text-red-400/80">Generation Timed Out (Session Ended)</span>
                 </div>
             </div>
             {% endif %}
+            <div class="text-[10px] text-brand-muted mt-1.5 ml-1">{{ gen.created_at|date:"h:i A" }}</div>
         </div>
     </div>
     {% endfor %}
@@ -119,7 +121,8 @@
             </div>
         </div>
 
-        <form id="chatForm" class="relative bg-brand-surface border border-brand-border rounded-2xl shadow-xl focus-within:ring-1 focus-within:ring-brand/50 focus-within:border-brand/50 transition-all flex flex-col">
+        <form id="chatForm" class="relative bg-brand-surface border border-brand-border rounded-2xl shadow-xl transition-all flex flex-col">
+            <input type="hidden" id="chatId" value="{{ active_chat.id }}">
             
             <!-- Dynamic Image/Media Previews Area -->
             <div id="mediaPreviews" class="flex flex-wrap gap-2 px-4 pt-3 hidden">
@@ -138,7 +141,7 @@
                 <input type="file" id="audioInput" accept="audio/*" multiple class="hidden">
 
                 <!-- Textarea -->
-                <textarea id="promptInput" rows="1" class="w-full max-h-32 bg-transparent border-0 resize-none focus:ring-0 text-sm py-3 px-3 text-brand-text placeholder-brand-muted/70 scrollbar-hide" placeholder="Message Xenon Studio..."></textarea>
+                <textarea id="promptInput" rows="1" class="w-full max-h-32 bg-transparent border-0 resize-none focus:outline-none focus:ring-0 focus:border-0 text-sm py-3 px-3 text-brand-text placeholder-brand-muted/70 scrollbar-hide" placeholder="Message Xenon Studio..." ></textarea>
                 
                 <div class="flex items-center space-x-1 shrink-0 px-2 pb-1.5">
                     <!-- Advanced Options Toggle -->
@@ -166,6 +169,7 @@
                 <!-- Javascript will inject settings tags here -->
             </div>
         </div>
+        <span class="msg-time text-[10px] text-brand-muted mt-1 px-1"></span>
     </div>
 </template>
 
@@ -187,6 +191,7 @@
                     <div class="bg-brand h-1.5 rounded-full w-0 transition-all duration-1000 ease-out progress-bar"></div>
                 </div>
             </div>
+            <div class="ai-time text-[10px] text-brand-muted mt-1.5 ml-1"></div>
         </div>
     </div>
 </template>
@@ -290,10 +295,13 @@
         const durationVal = document.getElementById('duration').value;
         const audioVal = document.getElementById('generateAudio').checked;
         const watermarkVal = document.getElementById('watermark').checked;
+        const chatId = document.getElementById('chatId').value;
+        const currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
 
         // 1. Render User Message instantly
         const userTpl = document.getElementById('userMessageTpl').content.cloneNode(true);
         userTpl.querySelector('.msg-text').textContent = prompt;
+        userTpl.querySelector('.msg-time').textContent = currentTime;
         
         // Inject settings tags
         const settingsContainer = userTpl.querySelector('.msg-settings');
@@ -321,6 +329,7 @@
         const aiTpl = document.getElementById('aiMessageTpl').content.cloneNode(true);
         const aiResponseContainer = aiTpl.querySelector('.response-container');
         const statusText = aiTpl.querySelector('.status-text');
+        aiTpl.querySelector('.ai-time').textContent = currentTime;
         chatFeed.appendChild(aiTpl);
         chatFeed.scrollTo({ top: chatFeed.scrollHeight, behavior: 'smooth' });
 
@@ -333,6 +342,7 @@
         // 4. Build FormData
         const fd = new FormData();
         fd.append('prompt', prompt);
+        fd.append('chat_id', chatId);
         fd.append('ratio', ratioVal);
         fd.append('resolution', resolutionVal);
         fd.append('duration', durationVal);
@@ -381,17 +391,21 @@
             }
         }, 1000);
         
+        let errorCount = 0;
+        
         const poll = setInterval(async () => {
             try {
                 const res = await fetch(`/generations/status/${genId}/`);
+                if (!res.ok) throw new Error('Server returned ' + res.status);
                 const data = await res.json();
+                errorCount = 0; // reset on success
                 
                 if (data.status === 'COMPLETED') {
                     clearInterval(poll);
                     clearInterval(pInterval);
                     container.innerHTML = `
-                        <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md">
-                            <video src="${data.video_url}" controls autoplay class="max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\\'><svg class=\\'w-8 h-8 mb-2 opacity-40\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\\'></path></svg><span class=\\'text-sm font-medium\\'>Video Lost</span><span class=\\'text-xs opacity-60 mt-1\\'>File removed from server</span></div>'"></video>
+                        <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md max-w-full">
+                            <video src="${data.video_url}" controls autoplay class="max-w-full max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\\'><svg class=\\'w-8 h-8 mb-2 opacity-40\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\\'></path></svg><span class=\\'text-sm font-medium\\'>Video Lost</span><span class=\\'text-xs opacity-60 mt-1\\'>File removed from server</span></div>'"></video>
                         </div>
                     `;
                     chatFeed.scrollTo({ top: chatFeed.scrollHeight, behavior: 'smooth' });
@@ -404,7 +418,22 @@
                         </div>
                     `;
                 }
-            } catch (e) { console.error('Poll err', e); }
+            } catch (e) {
+                console.error('Poll err', e);
+                errorCount++;
+                if (errorCount >= 5) {
+                    clearInterval(poll);
+                    clearInterval(pInterval);
+                    container.innerHTML = `
+                        <div class="bg-red-500/5 border border-red-500/10 px-5 py-4 rounded-xl rounded-tl-sm inline-block shadow-md">
+                            <div class="flex items-center space-x-3">
+                                <svg class="w-5 h-5 text-red-400/70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span class="text-sm text-red-400/80">Connection Lost / Timed Out</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            }
         }, 5000);
     }
 

@@ -4,6 +4,17 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+class ChatSession(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.CharField(max_length=200, default='New Chat')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.id})"
+
 class Generation(models.Model):
     class Status(models.TextChoices):
         QUEUED = 'QUEUED', 'Queued'
@@ -13,6 +24,7 @@ class Generation(models.Model):
         CANCELLED = 'CANCELLED', 'Cancelled'
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    chat_session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='generations', null=True, blank=True)
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True)
     prompt = models.TextField()
     model_id = models.CharField(max_length=100, default='dreamina-seedance-2-5-260628')

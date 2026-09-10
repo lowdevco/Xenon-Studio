@@ -46,8 +46,11 @@ class BytePlusService:
                     "role": "reference_audio"
                 })
 
+        # Allow user to specify an Endpoint ID (ep-xxx) in .env, otherwise fallback to the raw model string
+        model_override = config('BYTEPLUS_MODEL_ID', default=generation.model_id)
+
         payload = {
-            "model": generation.model_id,
+            "model": model_override,
             "content": content_list,
             "generate_audio": generation.generate_audio,
             "ratio": generation.ratio,

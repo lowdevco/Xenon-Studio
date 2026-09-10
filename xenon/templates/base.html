@@ -49,15 +49,56 @@
 </head>
 <body class="bg-brand-bg text-brand-text h-screen flex overflow-hidden font-sans selection:bg-brand selection:text-white">
 
-    {% include 'includes/sidebar.html' %}
+    <!-- Mobile Header -->
+    <div class="md:hidden absolute top-0 left-0 right-0 h-14 bg-brand-surface border-b border-brand-border flex items-center justify-between px-4 z-40">
+        <div class="flex items-center space-x-3">
+            <div class="w-8 h-8 rounded bg-brand flex items-center justify-center">
+                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+            </div>
+            <span class="font-bold text-brand-text">Xenon Studio</span>
+        </div>
+        <button id="mobileMenuBtn" class="p-2 -mr-2 text-brand-muted hover:text-white focus:outline-none">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+        </button>
+    </div>
 
-    <div class="flex-1 flex flex-col h-full relative">
+    <!-- Mobile Overlay Backdrop -->
+    <div id="mobileOverlay" class="md:hidden fixed inset-0 bg-black/60 z-40 hidden transition-opacity opacity-0"></div>
+
+    <!-- Sidebar Wrapper -->
+    <div id="sidebarWrapper" class="fixed md:static inset-y-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out h-full">
+        {% include 'includes/sidebar.html' %}
+    </div>
+
+    <div class="flex-1 flex flex-col h-full relative w-full pt-14 md:pt-0">
         <main class="flex-1 overflow-hidden relative">
             {% block content %}{% endblock %}
         </main>
     </div>
 
     <script>
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebarWrapper = document.getElementById('sidebarWrapper');
+        const mobileOverlay = document.getElementById('mobileOverlay');
+
+        function toggleMenu() {
+            const isOpen = !sidebarWrapper.classList.contains('-translate-x-full');
+            if (isOpen) {
+                sidebarWrapper.classList.add('-translate-x-full');
+                mobileOverlay.classList.remove('opacity-100');
+                setTimeout(() => mobileOverlay.classList.add('hidden'), 300);
+            } else {
+                mobileOverlay.classList.remove('hidden');
+                // trigger reflow
+                void mobileOverlay.offsetWidth;
+                mobileOverlay.classList.add('opacity-100');
+                sidebarWrapper.classList.remove('-translate-x-full');
+            }
+        }
+
+        if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMenu);
+        if(mobileOverlay) mobileOverlay.addEventListener('click', toggleMenu);
+
         function getCookie(name) {
             let cookieValue = null;
             if (document.cookie && document.cookie !== '') {
