@@ -32,9 +32,9 @@ This runs the background tasks that communicate with the BytePlus API, poll for 
    ```bash
    cd xenon
    ```
-2. Start the Celery worker:
+2. Start the Celery worker (Using eventlet allows concurrent video generation):
    ```bash
-   celery -A config worker -l info --pool=solo
+   python -m celery -A config worker -l info -P eventlet
    ```
 *Leave this terminal running in the background.*
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xenon Studio Chat</title>
+    <title>Xenon Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -76,7 +76,75 @@
         </main>
     </div>
 
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Confirm Modal -->
+    <div id="confirmModal" class="fixed inset-0 z-[9999] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-brand-surface border border-brand-border rounded-xl p-6 max-w-sm w-full shadow-2xl transform scale-95 transition-transform duration-300">
+            <h3 class="text-lg font-bold text-white mb-2" id="confirmTitle">Confirm Action</h3>
+            <p class="text-sm text-brand-muted mb-6" id="confirmMessage">Are you sure you want to proceed?</p>
+            <div class="flex justify-end space-x-3">
+                <button id="confirmCancelBtn" class="px-4 py-2 text-sm font-medium text-brand-muted hover:text-white transition-colors">Cancel</button>
+                <button id="confirmOkBtn" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Global Toast Notification
+        window.showToast = function(message, type = 'error') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            const bgClass = type === 'error' ? 'bg-red-500' : 'bg-brand';
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 pointer-events-auto transform transition-all duration-300 translate-y-8 opacity-0`;
+            toast.innerHTML = `
+                <span class="text-sm font-medium">${message}</span>
+                <button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white ml-2 shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            `;
+            container.appendChild(toast);
+            
+            // Animate in
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-8', 'opacity-0');
+            });
+
+            // Auto remove
+            setTimeout(() => {
+                toast.classList.add('translate-y-8', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        };
+
+        // Custom Confirm
+        window.customConfirm = function(title, message, callback) {
+            const modal = document.getElementById('confirmModal');
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            
+            const content = modal.querySelector('div');
+            modal.classList.remove('hidden');
+            requestAnimationFrame(() => content.classList.replace('scale-95', 'scale-100'));
+
+            const cancelBtn = document.getElementById('confirmCancelBtn');
+            const okBtn = document.getElementById('confirmOkBtn');
+
+            const cleanup = () => {
+                content.classList.replace('scale-100', 'scale-95');
+                setTimeout(() => modal.classList.add('hidden'), 200);
+                cancelBtn.removeEventListener('click', onCancel);
+                okBtn.removeEventListener('click', onOk);
+            };
+
+            const onCancel = () => { cleanup(); callback(false); };
+            const onOk = () => { cleanup(); callback(true); };
+
+            cancelBtn.addEventListener('click', onCancel);
+            okBtn.addEventListener('click', onOk);
+        };
+
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
         const sidebarWrapper = document.getElementById('sidebarWrapper');
         const mobileOverlay = document.getElementById('mobileOverlay');

@@ -40,12 +40,17 @@
         <!-- Text Bubble -->
         <div class="bg-[#27272a] text-brand-text px-5 py-3.5 rounded-2xl rounded-tr-sm max-w-2xl text-sm leading-relaxed shadow-sm">
             <p>{{ gen.prompt }}</p>
-            <div class="flex flex-wrap gap-2 mt-3 text-xs text-brand-muted/70">
+            <div class="flex flex-wrap items-center gap-2 mt-3 text-xs text-brand-muted/70">
                 <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">{{ gen.resolution }}</span>
                 <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">{{ gen.ratio }}</span>
                 <span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">{{ gen.duration }}s</span>
                 {% if gen.generate_audio %}<span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">Audio</span>{% endif %}
                 {% if gen.watermark %}<span class="bg-brand-bg/50 px-2 py-1 rounded border border-brand-border/50">Watermark</span>{% endif %}
+                
+                <button onclick="regenerate('{{ gen.id }}')" class="ml-auto flex items-center hover:text-brand transition-colors text-brand-muted">
+                    <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    Regenerate
+                </button>
             </div>
         </div>
         <span class="text-[10px] text-brand-muted mt-1 px-1">{{ gen.created_at|date:"h:i A" }}</span>
@@ -58,12 +63,35 @@
         </div>
         <div class="flex-1 max-w-4xl overflow-hidden">
             {% if gen.status == 'COMPLETED' and gen.video_file %}
-            <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md max-w-full">
-                <video src="{{ gen.video_file.url }}" controls class="max-w-full max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\'><svg class=\'w-8 h-8 mb-2 opacity-40\' fill=\'none\' stroke=\'currentColor\' viewBox=\'0 0 24 24\'><path stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'1.5\' d=\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\'></path></svg><span class=\'text-sm font-medium\'>Video Lost</span><span class=\'text-xs opacity-60 mt-1\'>File removed from server</span></div>'"></video>
+            <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md max-w-full relative group">
+                <div class="relative inline-block">
+                    <video src="{{ gen.video_file.url }}" onclick="this.paused ? this.play() : this.pause()" class="max-w-full max-h-[400px] rounded-lg bg-black cursor-pointer" onerror="this.outerHTML='<div class=\\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\\'><svg class=\\'w-8 h-8 mb-2 opacity-40\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\\'></path></svg><span class=\\'text-sm font-medium\\'>Video Lost</span><span class=\\'text-xs opacity-60 mt-1\\'>File removed from server</span></div>'"></video>
+                    <button onclick="const v = this.previousElementSibling; v.muted = !v.muted; this.innerHTML = v.muted ? '<svg class=\\'w-4 h-4\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z\\' clip-rule=\\'evenodd\\'/><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2\\'/></svg>' : '<svg class=\\'w-4 h-4\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z\\'/></svg>'" class="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                    </button>
+                </div>
+                <div class="flex justify-end mt-2 px-1">
+                    <a href="{{ gen.video_file.url }}" download="XenonStudio_{{ gen.id|truncatechars:8 }}.mp4" class="text-xs font-medium text-brand-muted hover:text-brand flex items-center transition-colors">
+                        <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download
+                    </a>
+                </div>
             </div>
             {% elif gen.status == 'FAILED' %}
             <div class="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl rounded-tl-sm text-sm">
                 Generation failed: {{ gen.error_message|default:"Unknown error" }}
+            </div>
+            {% elif gen.status == 'QUEUED' or gen.status == 'PROCESSING' %}
+            <div class="response-container pending-generation" data-gen-id="{{ gen.id }}">
+                <div class="bg-brand-surface border border-brand-border px-5 py-4 rounded-xl rounded-tl-sm inline-block shadow-md min-w-[200px]">
+                    <div class="flex items-center space-x-3 text-brand-text mb-2">
+                        <svg class="w-4 h-4 animate-spin text-brand shrink-0" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <span class="text-sm font-medium status-text truncate">Resuming Video Render...</span>
+                        <span class="text-xs text-brand font-bold ml-auto progress-percent">0%</span>
+                    </div>
+                    <div class="w-full bg-brand-bg rounded-full h-1 overflow-hidden">
+                        <div class="bg-brand h-1 rounded-full transition-all duration-300 progress-bar w-0"></div>
+                    </div>
+                </div>
             </div>
             {% else %}
             <!-- Old hanging task -->
@@ -97,9 +125,9 @@
                 <div class="flex items-center space-x-2">
                     <label>Resolution:</label>
                     <select id="resolution" class="bg-brand-bg border border-brand-border rounded px-2 py-1 focus:outline-none">
+                        <option value="480p" selected>480p</option>
                         <option value="720p">720p</option>
                         <option value="1080p">1080p</option>
-                        <option value="480p">480p</option>
                     </select>
                 </div>
                 <div class="flex items-center space-x-2">
@@ -165,7 +193,7 @@
         <div class="flex flex-wrap justify-end gap-2 max-w-2xl media-container"></div>
         <div class="bg-[#27272a] text-brand-text px-5 py-3.5 rounded-2xl rounded-tr-sm max-w-2xl text-sm leading-relaxed shadow-sm">
             <p class="msg-text"></p>
-            <div class="msg-settings flex flex-wrap gap-2 mt-3 text-xs text-brand-muted/70">
+            <div class="msg-settings flex flex-wrap items-center gap-2 mt-3 text-xs text-brand-muted/70">
                 <!-- Javascript will inject settings tags here -->
             </div>
         </div>
@@ -180,15 +208,15 @@
         </div>
         <div class="flex-1 max-w-4xl response-container">
             <div class="bg-brand-surface border border-brand-border px-5 py-4 rounded-xl rounded-tl-sm inline-block w-full max-w-md shadow-md">
-                <div class="flex items-center space-x-3 mb-3">
-                    <div class="relative w-5 h-5 shrink-0">
+                <div class="flex items-center space-x-3 mb-2">
+                    <div class="relative w-4 h-4 shrink-0">
                         <div class="absolute inset-0 rounded-full border-t-2 border-brand animate-spin"></div>
                     </div>
-                    <span class="text-sm font-medium text-brand-text status-text">Submitting to Seedance...</span>
+                    <span class="text-sm font-medium text-brand-text status-text truncate">Submitting to Seedance...</span>
                     <span class="text-xs font-bold text-brand ml-auto progress-percent">0%</span>
                 </div>
-                <div class="w-full bg-brand-bg rounded-full h-1.5 overflow-hidden">
-                    <div class="bg-brand h-1.5 rounded-full w-0 transition-all duration-1000 ease-out progress-bar"></div>
+                <div class="w-full bg-brand-bg rounded-full h-1 overflow-hidden">
+                    <div class="bg-brand h-1 rounded-full w-0 transition-all duration-1000 ease-out progress-bar"></div>
                 </div>
             </div>
             <div class="ai-time text-[10px] text-brand-muted mt-1.5 ml-1"></div>
@@ -240,49 +268,61 @@
     function handleFileSelect(type) {
         return function(e) {
             const files = Array.from(e.target.files);
-            // Validation limits
-            if (attachedFiles.image.length + files.length > 30 && type === 'image') return alert('Max 30 images');
-            if (attachedFiles.video.length + files.length > 10 && type === 'video') return alert('Max 10 videos');
-            if (attachedFiles.audio.length + files.length > 10 && type === 'audio') return alert('Max 10 audios');
+            
+            // Total file count validation limits
+            if (attachedFiles.image.length + files.length > 30 && type === 'image') return showToast('Max 30 images allowed.', 'error');
+            if (attachedFiles.video.length + files.length > 10 && type === 'video') return showToast('Max 10 videos allowed.', 'error');
+            if (attachedFiles.audio.length + files.length > 10 && type === 'audio') return showToast('Max 10 audio files allowed.', 'error');
 
             files.forEach(file => {
+                // File Size Validation Limits
+                if (type === 'image' && file.size > 30 * 1024 * 1024) {
+                    return showToast(`Image "${file.name}" is too large (Max 30MB).`, 'error');
+                }
+                if (type === 'video' && file.size > 200 * 1024 * 1024) {
+                    return showToast(`Video "${file.name}" is too large (Max 200MB).`, 'error');
+                }
+                if (type === 'audio' && file.size > 15 * 1024 * 1024) {
+                    return showToast(`Audio "${file.name}" is too large (Max 15MB).`, 'error');
+                }
+
                 attachedFiles[type].push(file);
                 
-                // Read & Render Preview
-                const reader = new FileReader();
-                reader.onload = (ev) => {
-                    mediaPreviews.classList.remove('hidden');
-                    const wrapper = document.createElement('div');
-                    wrapper.className = 'relative w-12 h-12 rounded-lg border border-brand-border bg-brand-bg group overflow-hidden shrink-0';
-                    
-                    if (type === 'image') {
-                        wrapper.innerHTML = `<img src="${ev.target.result}" class="w-full h-full object-cover">`;
-                    } else if (type === 'video') {
-                        wrapper.innerHTML = `<div class="w-full h-full flex items-center justify-center text-brand-muted"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg></div>`;
-                    }
-                    
-                    // Remove button
-                    const removeBtn = document.createElement('button');
-                    removeBtn.className = 'absolute top-0.5 right-0.5 w-4 h-4 bg-black/70 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity';
-                    removeBtn.innerHTML = '<svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
-                    removeBtn.onclick = () => {
-                        wrapper.remove();
-                        attachedFiles[type] = attachedFiles[type].filter(f => f !== file);
-                        if (Object.values(attachedFiles).flat().length === 0) mediaPreviews.classList.add('hidden');
-                    };
-                    wrapper.appendChild(removeBtn);
-                    mediaPreviews.appendChild(wrapper);
+                const preview = document.createElement('div');
+                preview.className = 'relative w-16 h-16 rounded-lg overflow-hidden border border-brand-border bg-brand-surface group cursor-pointer';
+                preview.onclick = () => openLightbox(URL.createObjectURL(file), type);
+                
+                if (type === 'image') {
+                    preview.innerHTML = `<img src="${URL.createObjectURL(file)}" class="w-full h-full object-cover">`;
+                } else if (type === 'video') {
+                    preview.innerHTML = `
+                        <video src="${URL.createObjectURL(file)}" class="w-full h-full object-cover"></video>
+                        <div class="absolute inset-0 bg-black/30 flex items-center justify-center"><svg class="w-6 h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path></svg></div>
+                    `;
+                } else if (type === 'audio') {
+                    preview.innerHTML = `<div class="w-full h-full flex items-center justify-center text-brand-muted"><svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2zM21 16c-1.105 0-2 .895-2 2s.895 2 2 2 2-.895 2-2-.895-2-2-2z"></path></svg></div>`;
+                }
+
+                const rmBtn = document.createElement('button');
+                rmBtn.className = 'absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10';
+                rmBtn.innerHTML = '<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>';
+                rmBtn.onclick = (event) => {
+                    event.stopPropagation();
+                    preview.remove();
+                    attachedFiles[type] = attachedFiles[type].filter(f => f !== file);
+                    if(mediaPreviews.children.length === 0) mediaPreviews.classList.add('hidden');
                 };
-                reader.readAsDataURL(file);
+                preview.appendChild(rmBtn);
+                mediaPreviews.appendChild(preview);
             });
-            // Reset input so you can select the same file again if needed
-            e.target.value = '';
+            mediaPreviews.classList.remove('hidden');
         }
     }
 
     // Submit Logic
     chatForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
         const prompt = promptInput.value.trim();
         if (!prompt) return;
 
@@ -356,6 +396,9 @@
         // Clear attached files logic
         attachedFiles = { image: [], video: [], audio: [] };
 
+        // Keep reference to the settings container to inject the button later
+        const appendedUserBubble = chatFeed.lastElementChild.previousElementSibling;
+
         try {
             const response = await fetch('/generations/create/', {
                 method: 'POST',
@@ -363,17 +406,76 @@
                 body: fd
             });
             const data = await response.json();
+            
+            if (response.status === 429) {
+                appendedUserBubble.remove();
+                chatFeed.lastElementChild.remove(); // Remove the AI bubble
+                showToast(data.error || 'Rate limit exceeded.', 'error');
+                return;
+            }
+
+            if (response.ok) {
+                // Add the regenerate button to the user's bubble now that we have the ID
+                const regenBtnHtml = `
+                    <button onclick="regenerate('${data.generation_id}')" class="ml-auto flex items-center hover:text-brand transition-colors text-brand-muted">
+                        <svg class="w-3.5 h-3.5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        Regenerate
+                    </button>
+                `;
+                appendedUserBubble.querySelector('.msg-settings').insertAdjacentHTML('beforeend', regenBtnHtml);
+
+                pollGeneration(data.generation_id, aiResponseContainer);
+            } else {
+                statusText.textContent = 'Error: ' + data.error;
+                statusText.classList.add('text-red-400');
+                aiResponseContainer.querySelector('.relative.w-4.h-4').remove(); // hide spinner
+            }
+        } catch (err) {
+            statusText.textContent = 'Network Error';
+            statusText.classList.add('text-red-400');
+            const spinner = aiResponseContainer.querySelector('.relative.w-4.h-4');
+            if (spinner) spinner.remove();
+        }
+    });
+
+    async function regenerate(genId) {
+        const currentTime = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        
+        // Render AI Loading Bubble instantly
+        const aiTpl = document.getElementById('aiMessageTpl').content.cloneNode(true);
+        const aiResponseContainer = aiTpl.querySelector('.response-container');
+        const statusText = aiTpl.querySelector('.status-text');
+        aiTpl.querySelector('.ai-time').textContent = currentTime;
+        chatFeed.appendChild(aiTpl);
+        chatFeed.scrollTo({ top: chatFeed.scrollHeight, behavior: 'smooth' });
+        
+        try {
+            const response = await fetch(`/generations/${genId}/regenerate/`, {
+                method: 'POST',
+                headers: { 'X-CSRFToken': csrftoken }
+            });
+            const data = await response.json();
+            
+            if (response.status === 429) {
+                chatFeed.lastElementChild.remove(); // Remove the AI bubble
+                showToast(data.error || 'Rate limit exceeded.', 'error');
+                return;
+            }
+
             if (response.ok) {
                 pollGeneration(data.generation_id, aiResponseContainer);
             } else {
                 statusText.textContent = 'Error: ' + data.error;
                 statusText.classList.add('text-red-400');
+                aiResponseContainer.querySelector('.relative.w-4.h-4').remove(); // hide spinner
             }
         } catch (err) {
             statusText.textContent = 'Network Error';
             statusText.classList.add('text-red-400');
+            const spinner = aiResponseContainer.querySelector('.relative.w-4.h-4');
+            if (spinner) spinner.remove();
         }
-    });
+    }
 
     function pollGeneration(genId, container) {
         const textElement = container.querySelector('.status-text');
@@ -404,8 +506,18 @@
                     clearInterval(poll);
                     clearInterval(pInterval);
                     container.innerHTML = `
-                        <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md max-w-full">
-                            <video src="${data.video_url}" controls autoplay class="max-w-full max-h-[400px] rounded-lg bg-black" onerror="this.outerHTML='<div class=\\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\\'><svg class=\\'w-8 h-8 mb-2 opacity-40\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\\'></path></svg><span class=\\'text-sm font-medium\\'>Video Lost</span><span class=\\'text-xs opacity-60 mt-1\\'>File removed from server</span></div>'"></video>
+                        <div class="bg-brand-surface border border-brand-border p-2 rounded-xl rounded-tl-sm inline-block shadow-md max-w-full relative group">
+                            <div class="relative inline-block">
+                                <video src="${data.video_url}" autoplay loop muted onclick="this.paused ? this.play() : this.pause()" class="max-w-full max-h-[400px] rounded-lg bg-black cursor-pointer" onerror="this.outerHTML='<div class=\\'flex flex-col items-center justify-center p-8 bg-brand-bg/50 rounded-lg border border-brand-border/50 text-brand-muted\\'><svg class=\\'w-8 h-8 mb-2 opacity-40\\' fill=\\'none\\' stroke=\\'currentColor\\' viewBox=\\'0 0 24 24\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'1.5\\' d=\\'M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636\\'></path></svg><span class=\\'text-sm font-medium\\'>Video Lost</span><span class=\\'text-xs opacity-60 mt-1\\'>File removed from server</span></div>'"></video>
+                                <button onclick="const v = this.previousElementSibling; v.muted = !v.muted; this.innerHTML = v.muted ? '<svg class=\\'w-4 h-4\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z\\' clip-rule=\\'evenodd\\'/><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2\\'/></svg>' : '<svg class=\\'w-4 h-4\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z\\'/></svg>'" class="absolute bottom-2 right-2 bg-black/60 hover:bg-black/80 text-white p-1.5 rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clip-rule="evenodd"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2"/></svg>
+                                </button>
+                            </div>
+                            <div class="flex justify-end mt-2 px-1">
+                                <a href="${data.video_url}" download="XenonStudio_${genId.substring(0,8)}.mp4" class="text-xs font-medium text-brand-muted hover:text-brand flex items-center transition-colors">
+                                    <svg class="w-4 h-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Download
+                                </a>
+                            </div>
                         </div>
                     `;
                     chatFeed.scrollTo({ top: chatFeed.scrollHeight, behavior: 'smooth' });
@@ -439,5 +551,48 @@
 
     // Scroll to bottom on initial load
     setTimeout(() => { chatFeed.scrollTop = chatFeed.scrollHeight; }, 100);
+
+    // Lightbox Logic
+    function openLightbox(url, type) {
+        const lightbox = document.getElementById('lightbox');
+        const content = document.getElementById('lightboxContent');
+        content.innerHTML = '';
+        if (type === 'image') {
+            content.innerHTML = `<img src="${url}" class="max-w-full max-h-[80vh] rounded-lg">`;
+        } else if (type === 'video') {
+            content.innerHTML = `
+                <div class="relative inline-block group">
+                    <video src="${url}" autoplay loop onclick="this.paused ? this.play() : this.pause()" class="max-w-full max-h-[80vh] rounded-lg cursor-pointer"></video>
+                    <button onclick="const v = this.previousElementSibling; v.muted = !v.muted; this.innerHTML = v.muted ? '<svg class=\\'w-6 h-6\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z\\' clip-rule=\\'evenodd\\'/><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2\\'/></svg>' : '<svg class=\\'w-6 h-6\\' fill=\\'none\\' viewBox=\\'0 0 24 24\\' stroke=\\'currentColor\\'><path stroke-linecap=\\'round\\' stroke-linejoin=\\'round\\' stroke-width=\\'2\\' d=\\'M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z\\'/></svg>'" class="absolute bottom-4 right-4 bg-black/60 hover:bg-black/80 text-white p-2.5 rounded-full transition-colors opacity-0 group-hover:opacity-100">
+                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/></svg>
+                    </button>
+                </div>
+            `;
+        }
+        lightbox.classList.remove('hidden');
+    }
+    
+    function closeLightbox() {
+        document.getElementById('lightbox').classList.add('hidden');
+        document.getElementById('lightboxContent').innerHTML = '';
+    }
+
+    // Resume polling for pending generations on page load
+    document.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('.pending-generation').forEach(container => {
+            const genId = container.getAttribute('data-gen-id');
+            if (genId) {
+                pollGeneration(genId, container);
+            }
+        });
+    });
 </script>
+
+<!-- Lightbox Overlay -->
+<div id="lightbox" class="fixed inset-0 z-[100] hidden bg-black/90 backdrop-blur-sm flex items-center justify-center p-4">
+    <button onclick="closeLightbox()" class="absolute top-4 right-4 text-white p-2 hover:bg-white/10 rounded-full">
+        <svg class="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+    </button>
+    <div id="lightboxContent" class="relative"></div>
+</div>
 {% endblock %}

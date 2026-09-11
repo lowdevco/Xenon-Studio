@@ -43,7 +43,7 @@ class Generation(models.Model):
     # Advanced API Configuration
     generate_audio = models.BooleanField(default=True)
     ratio = models.CharField(max_length=10, default='16:9')
-    resolution = models.CharField(max_length=20, default='720p')
+    resolution = models.CharField(max_length=20, default='480p')
     duration = models.IntegerField(default=5)
     watermark = models.BooleanField(default=False)
 

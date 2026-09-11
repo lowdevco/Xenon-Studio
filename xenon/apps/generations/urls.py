@@ -9,4 +9,5 @@ urlpatterns = [
     path('chat/<uuid:chat_id>/delete/', views.delete_chat, name='chat_delete'),
     path('generations/create/', views.create_generation, name='create_generation'),
     path('generations/status/<uuid:generation_id>/', views.get_generation_status, name='get_generation_status'),
+    path('generations/<uuid:generation_id>/regenerate/', views.regenerate, name='regenerate'),
 ]

@@ -65,7 +65,11 @@ class BytePlusService:
             headers=self._get_headers(),
             timeout=30.0
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"{str(e)} - API Response: {response.text}")
+            
         data = response.json()
         return data.get("id")
 
@@ -92,7 +96,11 @@ class BytePlusService:
             headers=self._get_headers(),
             timeout=10.0
         )
-        response.raise_for_status()
+        try:
+            response.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            raise Exception(f"{str(e)} - API Response: {response.text}")
+            
         return response.json()
 
     def download_video(self, url, destination_path):

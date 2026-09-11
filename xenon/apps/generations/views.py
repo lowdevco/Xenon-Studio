@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.db import models
 from django.views.decorators.csrf import ensure_csrf_cookie
 import mimetypes
+from django_ratelimit.decorators import ratelimit
 from .models import Generation, ReferenceMedia, ChatSession
 from .tasks import generate_video_task
 
@@ -15,12 +16,10 @@ def get_session_key(request):
 @ensure_csrf_cookie
 def index(request, chat_id=None):
     session_key = get_session_key(request)
-    # Include chats tied to this session or legacy chats with no session key
     chat_sessions = ChatSession.objects.filter(
         models.Q(session_key=session_key) | models.Q(session_key__isnull=True)
     ).order_by('-created_at')
     
-    # If no chat_id provided, redirect to the most recent one or create one
     if not chat_id:
         latest_chat = chat_sessions.first()
         if latest_chat:
@@ -29,7 +28,6 @@ def index(request, chat_id=None):
             new_session = ChatSession.objects.create(title="New Chat", session_key=session_key)
             return redirect('chat_session', chat_id=new_session.id)
             
-    # We have a specific chat_id
     try:
         active_chat = chat_sessions.get(id=chat_id)
     except ChatSession.DoesNotExist:
@@ -45,7 +43,6 @@ def index(request, chat_id=None):
 
 def new_chat(request):
     session_key = get_session_key(request)
-    # Determine chat title based on current count
     count = ChatSession.objects.filter(session_key=session_key).count()
     new_session = ChatSession.objects.create(title=f"Chat {count + 1}", session_key=session_key)
     return redirect('chat_session', chat_id=new_session.id)
@@ -61,7 +58,6 @@ def rename_chat(request, chat_id):
                     id=chat_id
                 )
                 chat.title = new_title
-                # Automatically claim legacy null sessions
                 if not chat.session_key:
                     chat.session_key = session_key
                 chat.save()
@@ -82,7 +78,12 @@ def delete_chat(request, chat_id):
             pass
     return redirect('index')
 
+@ratelimit(key='ip', rate='5/m', block=False)
 def create_generation(request):
+    was_limited = getattr(request, 'limited', False)
+    if was_limited:
+        return JsonResponse({'error': 'Rate limit exceeded. Please wait a minute.'}, status=429)
+        
     if request.method == 'POST':
         try:
             prompt = request.POST.get('prompt')
@@ -110,7 +111,6 @@ def create_generation(request):
             if len(videos) > 10: return JsonResponse({'error': 'Maximum 10 videos allowed'}, status=400)
             if len(audios) > 10: return JsonResponse({'error': 'Maximum 10 audios allowed'}, status=400)
             
-            # File validation
             def validate_files(files, max_mb, allowed_prefix):
                 max_bytes = max_mb * 1024 * 1024
                 for f in files:
@@ -130,7 +130,6 @@ def create_generation(request):
             err = validate_files(audios, 15, 'audio')
             if err: return JsonResponse({'error': err}, status=400)
             
-            # Create the database record
             generation = Generation.objects.create(
                 chat_session=active_chat,
                 prompt=prompt, 
@@ -149,10 +148,7 @@ def create_generation(request):
             for aud in audios:
                 ReferenceMedia.objects.create(generation=generation, media_type=ReferenceMedia.MediaType.AUDIO, file=aud)
             
-            # Get the base URL from the current request domain (e.g. localhost or ngrok domain)
             base_url = request.build_absolute_uri('/')[:-1]
-            
-            # Dispatch Celery task
             generate_video_task.delay(str(generation.id), base_url)
             
             return JsonResponse({'generation_id': str(generation.id)})
@@ -174,3 +170,51 @@ def get_generation_status(request, generation_id):
         })
     except Generation.DoesNotExist:
         return JsonResponse({'error': 'Not found'}, status=404)
+
+@ratelimit(key='ip', rate='5/m', block=False)
+def regenerate(request, generation_id):
+    was_limited = getattr(request, 'limited', False)
+    if was_limited:
+        return JsonResponse({'error': 'Rate limit exceeded. Please wait a minute.'}, status=429)
+        
+    if request.method == 'POST':
+        try:
+            session_key = get_session_key(request)
+            old_gen = Generation.objects.get(
+                models.Q(chat_session__session_key=session_key) | models.Q(chat_session__session_key__isnull=True),
+                id=generation_id
+            )
+            
+            new_gen = Generation.objects.create(
+                chat_session=old_gen.chat_session,
+                prompt=old_gen.prompt,
+                status=Generation.Status.QUEUED,
+                generate_audio=old_gen.generate_audio,
+                ratio=old_gen.ratio,
+                resolution=old_gen.resolution,
+                duration=old_gen.duration,
+                watermark=old_gen.watermark,
+            )
+            
+            from django.core.files.base import ContentFile
+            for media in old_gen.reference_media.all():
+                new_media = ReferenceMedia(
+                    generation=new_gen,
+                    media_type=media.media_type
+                )
+                if media.file:
+                    media.file.open('rb')
+                    new_media.file.save(media.file.name, ContentFile(media.file.read()), save=False)
+                    media.file.close()
+                new_media.save()
+            
+            base_url = request.build_absolute_uri('/')[:-1]
+            generate_video_task.delay(str(new_gen.id), base_url)
+            
+            return JsonResponse({'generation_id': str(new_gen.id)})
+            
+        except Generation.DoesNotExist:
+            return JsonResponse({'error': 'Not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid request method'}, status=405)
