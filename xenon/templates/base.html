@@ -5,23 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xenon Studio</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
-    <style type="text/tailwindcss">
-        @layer utilities {
-            .font-inter { font-family: 'Inter', sans-serif; }
-            .bg-glass {
-                @apply bg-[#09090b]/80 backdrop-blur-lg border border-[#27272a];
-            }
-            .scrollbar-hide::-webkit-scrollbar {
-                display: none;
-            }
-            .scrollbar-hide {
-                -ms-overflow-style: none;
-                scrollbar-width: none;
-            }
-        }
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        .slide-up { animation: slideUp 0.3s ease-out forwards; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Custom range slider */
+        input[type=range] { -webkit-appearance: none; background: transparent; }
+        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; height: 16px; width: 16px; border-radius: 50%; background: #3b82f6; cursor: pointer; margin-top: -6px; }
+        input[type=range]::-webkit-slider-runnable-track { width: 100%; height: 4px; cursor: pointer; background: #27272a; border-radius: 2px; }
     </style>
     <script>
         tailwind.config = {
@@ -47,125 +40,63 @@
     </script>
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-brand-bg text-brand-text h-screen flex overflow-hidden font-sans selection:bg-brand selection:text-white">
+<body class="bg-brand-bg text-brand-text h-screen flex flex-col overflow-hidden font-sans selection:bg-brand selection:text-white">
 
-    <!-- Mobile Header -->
-    <div class="md:hidden absolute top-0 left-0 right-0 h-14 bg-brand-surface border-b border-brand-border flex items-center justify-between px-4 z-40">
-        <div class="flex items-center space-x-3">
-            <div class="w-8 h-8 rounded bg-brand flex items-center justify-center">
-                <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+    <!-- Studio Navbar -->
+    <header class="h-14 bg-brand-bg border-b border-brand-border flex items-center justify-between px-6 shrink-0 z-50">
+        <!-- Left: Logo -->
+        <a href="{% url 'landing_page' %}" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
+            <div class="w-7 h-7 rounded bg-brand flex items-center justify-center">
+                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
-            <span class="font-bold text-brand-text">Xenon Studio</span>
+            <span class="font-bold text-brand-text tracking-tight text-lg">Xenon Studio</span>
+        </a>
+
+        <!-- Middle: Links -->
+        <nav class="flex items-center space-x-1">
+            <a href="{% url 'video_studio' %}" class="px-5 py-1.5 text-sm font-medium {% if request.resolver_match.url_name == 'video_studio' %}text-brand bg-brand/10 rounded-full{% else %}text-brand-muted hover:text-brand-text{% endif %} transition-colors">Video</a>
+        </nav>
+
+        <!-- Right: Assets & Account -->
+        <div class="flex items-center space-x-4">
+            <a href="{% url 'assets' %}" class="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium {% if request.resolver_match.url_name == 'assets' %}text-brand bg-brand/10 rounded-full{% else %}text-brand-muted hover:text-brand-text{% endif %} transition-colors">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
+                <span>Assets</span>
+            </a>
+            <div class="w-px h-5 bg-brand-border"></div>
+            <!-- User Placeholder -->
+            <button class="w-8 h-8 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center hover:border-brand-muted transition-colors">
+                <svg class="w-4 h-4 text-brand-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+            </button>
         </div>
-        <button id="mobileMenuBtn" class="p-2 -mr-2 text-brand-muted hover:text-white focus:outline-none">
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-        </button>
-    </div>
+    </header>
 
-    <!-- Mobile Overlay Backdrop -->
-    <div id="mobileOverlay" class="md:hidden fixed inset-0 bg-black/60 z-40 hidden transition-opacity opacity-0"></div>
-
-    <!-- Sidebar Wrapper -->
-    <div id="sidebarWrapper" class="fixed md:static inset-y-0 left-0 z-50 transform -translate-x-full md:translate-x-0 transition-transform duration-300 ease-in-out h-full">
-        {% include 'includes/sidebar.html' %}
-    </div>
-
-    <div class="flex-1 flex flex-col h-full relative w-full pt-14 md:pt-0">
-        <main class="flex-1 overflow-hidden relative">
-            {% block content %}{% endblock %}
-        </main>
-    </div>
+    <!-- Main Content Area -->
+    <main class="flex-1 flex overflow-hidden relative">
+        {% block content %}{% endblock %}
+    </main>
 
     <!-- Toast Container -->
     <div id="toast-container" class="fixed bottom-4 right-4 z-[9999] flex flex-col space-y-2 pointer-events-none"></div>
 
-    <!-- Confirm Modal -->
-    <div id="confirmModal" class="fixed inset-0 z-[9999] hidden bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-brand-surface border border-brand-border rounded-xl p-6 max-w-sm w-full shadow-2xl transform scale-95 transition-transform duration-300">
-            <h3 class="text-lg font-bold text-white mb-2" id="confirmTitle">Confirm Action</h3>
-            <p class="text-sm text-brand-muted mb-6" id="confirmMessage">Are you sure you want to proceed?</p>
-            <div class="flex justify-end space-x-3">
-                <button id="confirmCancelBtn" class="px-4 py-2 text-sm font-medium text-brand-muted hover:text-white transition-colors">Cancel</button>
-                <button id="confirmOkBtn" class="px-4 py-2 bg-red-500 hover:bg-red-600 text-white text-sm font-medium rounded-lg transition-colors">Delete</button>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Global Toast Notification
         window.showToast = function(message, type = 'error') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             const bgClass = type === 'error' ? 'bg-red-500' : 'bg-brand';
-            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 pointer-events-auto transform transition-all duration-300 translate-y-8 opacity-0`;
-            toast.innerHTML = `
-                <span class="text-sm font-medium">${message}</span>
+            toast.className = \ text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 pointer-events-auto transform transition-all duration-300 translate-y-8 opacity-0\;
+            toast.innerHTML =                 <span class="text-sm font-medium">\</span>
                 <button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white ml-2 shrink-0">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-            `;
+            \;
             container.appendChild(toast);
-            
-            // Animate in
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-8', 'opacity-0');
-            });
-
-            // Auto remove
+            requestAnimationFrame(() => toast.classList.remove('translate-y-8', 'opacity-0'));
             setTimeout(() => {
                 toast.classList.add('translate-y-8', 'opacity-0');
                 setTimeout(() => toast.remove(), 300);
             }, 4000);
         };
-
-        // Custom Confirm
-        window.customConfirm = function(title, message, callback) {
-            const modal = document.getElementById('confirmModal');
-            document.getElementById('confirmTitle').textContent = title;
-            document.getElementById('confirmMessage').textContent = message;
-            
-            const content = modal.querySelector('div');
-            modal.classList.remove('hidden');
-            requestAnimationFrame(() => content.classList.replace('scale-95', 'scale-100'));
-
-            const cancelBtn = document.getElementById('confirmCancelBtn');
-            const okBtn = document.getElementById('confirmOkBtn');
-
-            const cleanup = () => {
-                content.classList.replace('scale-100', 'scale-95');
-                setTimeout(() => modal.classList.add('hidden'), 200);
-                cancelBtn.removeEventListener('click', onCancel);
-                okBtn.removeEventListener('click', onOk);
-            };
-
-            const onCancel = () => { cleanup(); callback(false); };
-            const onOk = () => { cleanup(); callback(true); };
-
-            cancelBtn.addEventListener('click', onCancel);
-            okBtn.addEventListener('click', onOk);
-        };
-
-        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
-        const sidebarWrapper = document.getElementById('sidebarWrapper');
-        const mobileOverlay = document.getElementById('mobileOverlay');
-
-        function toggleMenu() {
-            const isOpen = !sidebarWrapper.classList.contains('-translate-x-full');
-            if (isOpen) {
-                sidebarWrapper.classList.add('-translate-x-full');
-                mobileOverlay.classList.remove('opacity-100');
-                setTimeout(() => mobileOverlay.classList.add('hidden'), 300);
-            } else {
-                mobileOverlay.classList.remove('hidden');
-                // trigger reflow
-                void mobileOverlay.offsetWidth;
-                mobileOverlay.classList.add('opacity-100');
-                sidebarWrapper.classList.remove('-translate-x-full');
-            }
-        }
-
-        if(mobileMenuBtn) mobileMenuBtn.addEventListener('click', toggleMenu);
-        if(mobileOverlay) mobileOverlay.addEventListener('click', toggleMenu);
 
         function getCookie(name) {
             let cookieValue = null;

@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex-1 flex flex-col items-center justify-center p-6 w-full max-w-4xl mx-auto text-center">
+    <div class="mb-8 p-6 bg-brand/10 rounded-full">
+        <svg class="w-20 h-20 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+    </div>
+    
+    <h1 class="text-5xl font-bold tracking-tight text-white mb-6">Welcome to Xenon Studio</h1>
+    <p class="text-lg text-brand-muted mb-12 max-w-2xl leading-relaxed">
+        Professional-grade video generation powered by advanced AI models. Create cinematic shots, character consistency, and limitless imagination all inside a powerful studio layout.
+    </p>
+    
+    <a href="{% url 'video_studio' %}" class="px-8 py-4 bg-brand hover:bg-brand/90 text-white font-semibold rounded-xl text-lg transition-transform hover:scale-105 active:scale-95 shadow-lg shadow-brand/20">
+        Enter Studio
+    </a>
+</div>
+{% endblock %}

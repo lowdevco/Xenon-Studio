@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="flex-1 flex w-full h-full">
+    
+    <!-- Left Filter Sidebar -->
+    <aside class="w-64 border-r border-brand-border bg-brand-bg flex flex-col p-4 shrink-0">
+        <h2 class="text-xs font-semibold text-brand-muted uppercase tracking-wider mb-4 px-2">Assets</h2>
+        <ul class="space-y-1">
+            <li>
+                <button class="w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg text-white bg-brand/10 text-left">
+                    <svg class="w-4 h-4 mr-3 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                    Video
+                </button>
+            </li>
+            <li>
+                <button class="w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg text-brand-muted hover:text-white hover:bg-brand-surface text-left transition-colors cursor-not-allowed opacity-50" title="Coming soon">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    Image
+                </button>
+            </li>
+            <li>
+                <button class="w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg text-brand-muted hover:text-white hover:bg-brand-surface text-left transition-colors cursor-not-allowed opacity-50" title="Coming soon">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"></path></svg>
+                    Audio
+                </button>
+            </li>
+        </ul>
+    </aside>
+
+    <!-- Main Grid -->
+    <div class="flex-1 p-6 overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h1 class="text-2xl font-bold text-white">All Video Assets</h1>
+            <a href="{% url 'video_studio' %}" class="px-4 py-2 bg-brand-surface border border-brand-border hover:bg-brand/10 text-white rounded-lg text-sm font-medium transition-colors">
+                <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Generate
+            </a>
+        </div>
+
+        {% if generations %}
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                {% for gen in generations %}
+                <div class="group relative bg-[#18181b] rounded-xl overflow-hidden border border-[#27272a] hover:border-[#3b82f6] aspect-[9/16] cursor-pointer transition-all">
+                    {% if gen.video_file %}
+                        <video src="{{ gen.video_file.url }}" class="w-full h-full object-cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                    {% endif %}
+                    
+                    <div class="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div class="absolute bottom-0 left-0 right-0 p-4">
+                            <p class="text-white text-sm font-medium line-clamp-2 mb-2">{{ gen.prompt }}</p>
+                            <div class="flex items-center space-x-2 text-xs text-[#a1a1aa]">
+                                <span>{{ gen.duration }}s</span>
+                                <span>&bull;</span>
+                                <span>{{ gen.resolution }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="h-full flex flex-col items-center justify-center text-center mt-20">
+                <div class="flex -space-x-4 mb-6">
+                    <div class="w-16 h-20 bg-brand-surface border border-brand-border rounded-lg -rotate-6 z-10"></div>
+                    <div class="w-16 h-20 bg-brand-surface border border-brand-border rounded-lg rotate-0 z-20 shadow-xl"></div>
+                    <div class="w-16 h-20 bg-brand-surface border border-brand-border rounded-lg rotate-6 z-10"></div>
+                </div>
+                <h3 class="text-lg font-medium text-white mb-2">Your generations will appear here</h3>
+                <p class="text-sm text-brand-muted mb-6">Use folders to keep your work organized.</p>
+                <a href="{% url 'video_studio' %}" class="px-6 py-2.5 bg-brand hover:bg-brand/90 text-white font-medium rounded-lg transition-colors">
+                    <svg class="w-4 h-4 inline-block mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Generate
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
