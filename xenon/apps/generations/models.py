@@ -62,3 +62,18 @@ class ReferenceMedia(models.Model):
     
     def __str__(self):
         return f"{self.media_type} for Generation {self.generation.id}"
+
+class Upload(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=200, default='Untitled Upload')
+    file = models.FileField(upload_to='uploads/raw/')
+    
+    # BytePlus Asset Tracking
+    byteplus_group_id = models.CharField(max_length=100, blank=True, null=True)
+    byteplus_asset_id = models.CharField(max_length=100, blank=True, null=True)
+    byteplus_status = models.CharField(max_length=50, default='Pending') # Pending, Active, Failed
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.name} ({self.id})"

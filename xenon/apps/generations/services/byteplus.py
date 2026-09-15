@@ -115,3 +115,60 @@ class BytePlusService:
                 for chunk in response.iter_content(chunk_size=8192):
                     if chunk:
                         f.write(chunk)
+
+    def get_asset_api(self):
+        from byteplussdkcore.configuration import Configuration
+        from byteplussdkcore.api_client import ApiClient
+        from byteplussdkcore.universal import UniversalApi
+        
+        ak = config('BYTEPLUS_AK', default='')
+        sk = config('BYTEPLUS_SK', default='')
+        
+        if not ak or not sk:
+            raise Exception("BYTEPLUS_AK and BYTEPLUS_SK are required in .env")
+            
+        c = Configuration()
+        c.ak = ak
+        c.sk = sk
+        c.region = 'ap-southeast-1'
+        
+        client = ApiClient(c)
+        return UniversalApi(client)
+
+    def create_asset_group(self, name, description):
+        from byteplussdkcore.universal import UniversalInfo
+        api = self.get_asset_api()
+        info = UniversalInfo(method='POST', service='ark', version='2024-01-01', action='CreateAssetGroup', content_type='application/json')
+        body = {'Name': name, 'Description': description, 'ProjectName': 'default'}
+        resp = api.do_call(info, body)
+        return resp
+        
+    def create_asset(self, group_id, file_url, asset_type='Image'):
+        from byteplussdkcore.universal import UniversalInfo
+        api = self.get_asset_api()
+        info = UniversalInfo(method='POST', service='ark', version='2024-01-01', action='CreateAsset', content_type='application/json')
+        body = {
+            'GroupId': group_id,
+            'URL': file_url,
+            'AssetType': asset_type,
+            'Moderation': {'Strategy': 'Skip'},
+            'ProjectName': 'default'
+        }
+        resp = api.do_call(info, body)
+        return resp
+        
+    def get_asset(self, asset_id):
+        from byteplussdkcore.universal import UniversalInfo
+        api = self.get_asset_api()
+        info = UniversalInfo(method='POST', service='ark', version='2024-01-01', action='GetAsset', content_type='application/json')
+        body = {'Id': asset_id, 'ProjectName': 'default'}
+        resp = api.do_call(info, body)
+        return resp
+        
+    def delete_asset_group(self, group_id):
+        from byteplussdkcore.universal import UniversalInfo
+        api = self.get_asset_api()
+        info = UniversalInfo(method='POST', service='ark', version='2024-01-01', action='DeleteAssetGroup', content_type='application/json')
+        body = {'Id': group_id, 'ProjectName': 'default'}
+        resp = api.do_call(info, body)
+        return resp

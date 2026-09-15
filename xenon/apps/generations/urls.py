@@ -11,4 +11,10 @@ urlpatterns = [
     path('generations/status/<uuid:generation_id>/', views.get_generation_status, name='get_generation_status'),
     path('generations/<uuid:generation_id>/delete/', views.delete_generation, name='delete_generation'),
     path('generations/<uuid:generation_id>/regenerate/', views.regenerate, name='regenerate'),
+    
+    # Uploads API
+    path('uploads/', views.list_uploads, name='list_uploads'),
+    path('uploads/create/', views.create_upload, name='create_upload'),
+    path('uploads/<uuid:upload_id>/verify/', views.verify_upload, name='verify_upload'),
+    path('uploads/<uuid:upload_id>/delete/', views.delete_upload, name='delete_upload'),
 ]

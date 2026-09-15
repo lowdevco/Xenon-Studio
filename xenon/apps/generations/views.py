@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.urls import reverse
 from django.db import models
 from django.views.decorators.csrf import ensure_csrf_cookie
+from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
 from .models import Generation, ReferenceMedia
 from .tasks import generate_video_task
@@ -47,9 +48,22 @@ def create_generation(request):
             watermark=request.POST.get('watermark') == 'true'
         )
         
-        # Handle reference media placeholders (if any files were uploaded)
-        for f in request.FILES.getlist('files'):
-            ReferenceMedia.objects.create(generation=generation, file=f)
+        # Handle reference_ids
+        reference_ids = request.POST.get('reference_ids', '')
+        if reference_ids:
+            from .models import Upload, ReferenceMedia
+            for ref_id in reference_ids.split(','):
+                try:
+                    upload = Upload.objects.get(id=ref_id)
+                    media_type = 'video' if upload.file.name.lower().endswith('.mp4') else 'image'
+                    # We copy the file reference to ReferenceMedia
+                    ReferenceMedia.objects.create(
+                        generation=generation,
+                        media_type=media_type,
+                        file=upload.file
+                    )
+                except Upload.DoesNotExist:
+                    pass
             
         # Dispatch Celery Task
         generate_video_task.delay(generation.id, request.build_absolute_uri('/'))
@@ -142,3 +156,95 @@ def delete_generation(request, generation_id):
     
     print(f"Invalid method {request.method} for delete API")
     return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+from .models import Upload
+
+@require_http_methods(['GET'])
+@require_http_methods(['GET'])
+def list_uploads(request):
+    uploads = Upload.objects.order_by('-created_at')
+    data = []
+    for up in uploads:
+        data.append({
+            'id': str(up.id),
+            'name': up.name,
+            'category': 'Upload',
+            'media_url': up.file.url if up.file else '',
+            'status': up.byteplus_status
+        })
+    return JsonResponse({'uploads': data})
+
+@require_http_methods(['POST'])
+def create_upload(request):
+    media_file = request.FILES.get('media_file')
+    if not media_file:
+        return JsonResponse({'error': 'Media file is required'}, status=400)
+        
+    upload = Upload.objects.create(
+        name=media_file.name,
+        file=media_file,
+        byteplus_status='Unverified'
+    )
+    
+    return JsonResponse({
+        'id': str(upload.id),
+        'name': upload.name,
+        'category': 'Upload',
+        'media_url': upload.file.url,
+        'status': upload.byteplus_status
+    })
+
+@require_http_methods(['POST'])
+def verify_upload(request, upload_id):
+    try:
+        upload = Upload.objects.get(id=upload_id)
+        
+        from apps.generations.services.byteplus import BytePlusService
+        bps = BytePlusService()
+        
+        public_url = request.build_absolute_uri(upload.file.url)
+        group_resp = bps.create_asset_group(f"upload_group_{upload.id}", "Xenon Upload Group")
+        group_id = group_resp.get("Id")
+        
+        asset_type = 'Video' if upload.file.name.lower().endswith('.mp4') else 'Image'
+        asset_resp = bps.create_asset(group_id, public_url, asset_type)
+        asset_id = asset_resp.get("Id")
+        
+        # We rely on BytePlus API at generation time to catch privacy issues
+        # to avoid burning generation credits during verification.
+        
+        upload.byteplus_group_id = group_id
+        upload.byteplus_asset_id = asset_id
+        upload.byteplus_status = 'Verified' 
+        upload.save()
+        
+        return JsonResponse({
+            'id': str(upload.id),
+            'status': upload.byteplus_status
+        })
+    except Upload.DoesNotExist:
+        return JsonResponse({'error': 'Upload not found'}, status=404)
+    except Exception as e:
+        print(f"BytePlus Verify Error: {e}")
+        upload.byteplus_status = 'Failed'
+        upload.save()
+        return JsonResponse({'error': str(e)}, status=500)
+
+@require_http_methods(['DELETE'])
+def delete_upload(request, upload_id):
+    try:
+        upload = Upload.objects.get(id=upload_id)
+        
+        if upload.byteplus_group_id:
+            from apps.generations.services.byteplus import BytePlusService
+            try:
+                bps = BytePlusService()
+                bps.delete_asset_group(upload.byteplus_group_id)
+            except Exception as e:
+                print(f"Failed to delete BytePlus asset group: {e}")
+
+        upload.file.delete(save=False)
+        upload.delete()
+        return JsonResponse({'status': 'success'})
+    except Upload.DoesNotExist:
+        return JsonResponse({'error': 'Upload not found'}, status=404)

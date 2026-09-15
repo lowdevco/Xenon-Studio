@@ -84,12 +84,13 @@
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
             const bgClass = type === 'error' ? 'bg-red-500' : 'bg-brand';
-            toast.className = \ text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 pointer-events-auto transform transition-all duration-300 translate-y-8 opacity-0\;
-            toast.innerHTML =                 <span class="text-sm font-medium">\</span>
+            toast.className = `${bgClass} text-white px-4 py-3 rounded-lg shadow-lg flex items-center space-x-3 pointer-events-auto transform transition-all duration-300 translate-y-8 opacity-0`;
+            toast.innerHTML = `
+                <span class="text-sm font-medium">${message}</span>
                 <button onclick="this.parentElement.remove()" class="text-white/80 hover:text-white ml-2 shrink-0">
                     <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
-            \;
+            `;
             container.appendChild(toast);
             requestAnimationFrame(() => toast.classList.remove('translate-y-8', 'opacity-0'));
             setTimeout(() => {
