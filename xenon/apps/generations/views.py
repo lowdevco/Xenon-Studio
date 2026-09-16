@@ -60,7 +60,8 @@ def create_generation(request):
                     ReferenceMedia.objects.create(
                         generation=generation,
                         media_type=media_type,
-                        file=upload.file
+                        file=upload.file,
+                        byteplus_asset_id=upload.byteplus_asset_id
                     )
                 except Upload.DoesNotExist:
                     pass

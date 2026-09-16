@@ -184,7 +184,7 @@
                      data-created="{{ gen.created_at|date:'M j, Y' }}">
                     
                     {% if gen.video_file %}
-                        <video src="{{ gen.video_file.url }}" class="w-full h-full object-cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                        <video src="{{ gen.video_file.url }}" class="w-full h-full object-cover" w loop onmouseover="this.play()" onmouseout="this.pause()"></video>
                         <div class="absolute top-2 right-2 z-20 flex space-x-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
                             <a href="{{ gen.video_file.url }}" download class="grid-download-btn w-6 h-6 bg-black/60 hover:bg-[#3b82f6] backdrop-blur rounded flex items-center justify-center text-white transition-colors border border-white/10" title="Download">
                                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
@@ -893,8 +893,8 @@
         formData.append('model', "dreamina-seedance-2-5-260628");
         formData.append('ratio', ratioSelect.value);
         formData.append('resolution', resSelect.value);
-        formData.append('duration', durationSelect.value);
-        formData.append('generate_audio', false); 
+        formData.append('duration', durationSelect.value.replace('s', '')); // Ensure it's just the number
+        formData.append('generate_audio', true); 
         formData.append('watermark', false);
 
         try {

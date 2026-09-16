@@ -59,6 +59,7 @@ class ReferenceMedia(models.Model):
     generation = models.ForeignKey(Generation, on_delete=models.CASCADE, related_name='reference_media')
     media_type = models.CharField(max_length=10, choices=MediaType.choices)
     file = models.FileField(upload_to='references/multi/')
+    byteplus_asset_id = models.CharField(max_length=100, blank=True, null=True)
     
     def __str__(self):
         return f"{self.media_type} for Generation {self.generation.id}"

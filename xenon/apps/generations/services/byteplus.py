@@ -9,6 +9,7 @@ class BytePlusService:
         self.api_key = config('BYTEPLUS_MODELARK_API_KEY', default='')
         self.base_url = config('BYTEPLUS_MODELARK_BASE_URL', default='https://ark.cn-beijing.volces.com/api/v3')
         self.mock_mode = config('MOCK_BYTEPLUS', default=False, cast=bool)
+        self.project_name = config('BYTEPLUS_PROJECT_NAME', default='default')
         
     def _get_headers(self):
         return {
@@ -27,22 +28,23 @@ class BytePlusService:
         
         # Append reference media if provided, turning relative paths into absolute URLs
         for media in generation.reference_media.all():
+            media_url = f"asset://{media.byteplus_asset_id}" if getattr(media, 'byteplus_asset_id', None) else f"{base_url}{media.file.url}"
             if media.media_type == 'image':
                 content_list.append({
                     "type": "image_url",
-                    "image_url": {"url": f"{base_url}{media.file.url}"},
+                    "image_url": {"url": media_url},
                     "role": "reference_image"
                 })
             elif media.media_type == 'video':
                 content_list.append({
                     "type": "video_url",
-                    "video_url": {"url": f"{base_url}{media.file.url}"},
+                    "video_url": {"url": media_url},
                     "role": "reference_video"
                 })
             elif media.media_type == 'audio':
                 content_list.append({
                     "type": "audio_url",
-                    "audio_url": {"url": f"{base_url}{media.file.url}"},
+                    "audio_url": {"url": media_url},
                     "role": "reference_audio"
                 })
 
@@ -139,7 +141,7 @@ class BytePlusService:
         from byteplussdkcore.universal import UniversalInfo
         api = self.get_asset_api()
         info = UniversalInfo(method='POST', service='ark', version='2024-01-01', action='CreateAssetGroup', content_type='application/json')
-        body = {'Name': name, 'Description': description, 'ProjectName': 'default'}
+        body = {'Name': name, 'Description': description, 'ProjectName': self.project_name}
         resp = api.do_call(info, body)
         return resp
         
@@ -152,7 +154,7 @@ class BytePlusService:
             'URL': file_url,
             'AssetType': asset_type,
             'Moderation': {'Strategy': 'Skip'},
-            'ProjectName': 'default'
+            'ProjectName': self.project_name
         }
         resp = api.do_call(info, body)
         return resp
@@ -161,7 +163,7 @@ class BytePlusService:
         from byteplussdkcore.universal import UniversalInfo
         api = self.get_asset_api()
         info = UniversalInfo(method='POST', service='ark', version='2024-01-01', action='GetAsset', content_type='application/json')
-        body = {'Id': asset_id, 'ProjectName': 'default'}
+        body = {'Id': asset_id, 'ProjectName': self.project_name}
         resp = api.do_call(info, body)
         return resp
         
@@ -169,6 +171,6 @@ class BytePlusService:
         from byteplussdkcore.universal import UniversalInfo
         api = self.get_asset_api()
         info = UniversalInfo(method='POST', service='ark', version='2024-01-01', action='DeleteAssetGroup', content_type='application/json')
-        body = {'Id': group_id, 'ProjectName': 'default'}
+        body = {'Id': group_id, 'ProjectName': self.project_name}
         resp = api.do_call(info, body)
         return resp
