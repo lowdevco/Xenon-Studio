@@ -83,6 +83,7 @@ def get_generation_status(request, generation_id):
             'id': generation.id,
             'status': generation.status,
             'error_message': generation.error_message,
+            'progress': generation.progress,
         }
         
         if generation.status == 'COMPLETED' and generation.video_file:

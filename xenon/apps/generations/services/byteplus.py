@@ -80,11 +80,13 @@ class BytePlusService:
             # Simulate processing time (if task_id was created less than 15 seconds ago, it's 'running')
             try:
                 creation_time = int(task_id.split('-')[-1])
-                if time.time() - creation_time < 15:
-                    return {"status": "running"}
+                elapsed = time.time() - creation_time
+                if elapsed < 15:
+                    return {"status": "running", "progress": int((elapsed / 15.0) * 99)}
                 else:
                     return {
                         "status": "succeeded", 
+                        "progress": 100,
                         "content": {
                             # Using a highly reliable MDN web docs sample video
                             "video_url": "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"

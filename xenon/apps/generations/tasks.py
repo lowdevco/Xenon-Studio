@@ -5,7 +5,7 @@ from django.conf import settings
 from .models import Generation
 from .services.byteplus import BytePlusService
 
-@shared_task(bind=True, max_retries=100)
+@shared_task(bind=True, max_retries=300)
 def generate_video_task(self, generation_id, base_url=""):
     try:
         generation = Generation.objects.get(id=generation_id)
@@ -33,12 +33,21 @@ def generate_video_task(self, generation_id, base_url=""):
         # 2. Polling
         task_data = service.get_task(generation.provider_task_id)
         status = task_data.get('status')
+        progress = task_data.get('progress', 0)
+        
+        # If the API doesn't return progress directly, we can safely just use what we get (default 0)
+        # Byteplus might return it under different keys. If not provided, it stays 0 or previous.
+        if progress:
+            generation.progress = progress
+            generation.save(update_fields=['progress'])
 
         if status in ['queued', 'running']:
             # Still working, check again in 5 seconds
             raise self.retry(countdown=5)
             
         elif status == 'succeeded':
+            generation.progress = 100
+            generation.save(update_fields=['progress'])
             content = task_data.get('content', {})
             video_url = content.get('video_url')
             
