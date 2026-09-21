@@ -1,2 +1,3 @@
-﻿# Xenon Studio
-A modern video generation web application powered by Django, Celery, and the BytePlus ModelArk API.
+﻿Xenon Studio
+---
+A modern video generation web application

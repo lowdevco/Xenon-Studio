@@ -12,7 +12,7 @@ def landing_page(request):
     return render(request, 'pages/landing.html')
 
 @ensure_csrf_cookie
-def video_studio(request):
+def video_studio(request, model='seedance_2_5'):
     # Fetch all generations for the user (or session based for now)
     # Since we dropped user auth, we'll just show all generations for now, 
     # or rely on the session if we want to restrict it.
@@ -21,7 +21,14 @@ def video_studio(request):
     
     # We can link generations to session_key
     generations = Generation.objects.all().order_by('-created_at')[:20]
-    return render(request, 'pages/video_studio.html', {'generations': generations})
+    
+    # Read model from URL path parameter
+    active_model = model
+    
+    return render(request, 'pages/video_studio.html', {
+        'generations': generations,
+        'active_model': active_model
+    })
 
 def assets(request):
     # Fetch all successful video generations
@@ -200,7 +207,20 @@ def create_upload(request):
 def verify_upload(request, upload_id):
     try:
         upload = Upload.objects.get(id=upload_id)
+        model = request.GET.get('model', '')
         
+        # If the active model is Kling, we don't need BytePlus verification.
+        # Kling uses base64 local file encoding at generation time.
+        if model.startswith('kling'):
+            # Kling image2video only supports images, not videos. We could enforce it here, 
+            # but for now, we'll just bypass BytePlus and mark it verified.
+            upload.byteplus_status = 'Verified'
+            upload.save()
+            return JsonResponse({
+                'id': str(upload.id),
+                'status': upload.byteplus_status
+            })
+            
         from apps.generations.services.byteplus import BytePlusService
         bps = BytePlusService()
         
@@ -227,7 +247,7 @@ def verify_upload(request, upload_id):
     except Upload.DoesNotExist:
         return JsonResponse({'error': 'Upload not found'}, status=404)
     except Exception as e:
-        print(f"BytePlus Verify Error: {e}")
+        print(f"Verify Error: {e}")
         upload.byteplus_status = 'Failed'
         upload.save()
         return JsonResponse({'error': str(e)}, status=500)

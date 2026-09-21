@@ -11,6 +11,7 @@ Ensure you have your Python virtual environment activated in the first two termi
 ---
 
 ### Terminal 1: The Django Web Server
+
 This runs the main web application and the frontend UI.
 
 1. Navigate to the `xenon` directory:
@@ -26,6 +27,7 @@ This runs the main web application and the frontend UI.
 ---
 
 ### Terminal 2: The Celery Background Worker
+
 This runs the background tasks that communicate with the BytePlus API, poll for status, and download the finished videos. (Requires Redis to be running on your machine).
 
 1. Navigate to the `xenon` directory:
@@ -41,6 +43,7 @@ This runs the background tasks that communicate with the BytePlus API, poll for 
 ---
 
 ### Terminal 3: Ngrok (For Public File URLs)
+
 Because the BytePlus API requires a public URL to download any reference images/videos you upload, we use Ngrok to temporarily expose your local Django server to the internet.
 
 1. Open a new terminal (virtual environment not required).
@@ -50,8 +53,6 @@ Because the BytePlus API requires a public URL to download any reference images/
    ```
 3. Look for the **Forwarding** URL in the ngrok output (it will look something like `https://a1b2c3d4.ngrok-free.app`).
 
-### Accessing the App
-**Important:** Do not open `127.0.0.1:8000` in your browser. 
-Instead, copy the **Forwarding URL** provided by Ngrok and paste it into your browser. 
+---
 
-By accessing the app through the Ngrok URL, Django will automatically detect the public domain and securely send public file links to the BytePlus servers!
+**Author:** [Muhammad Irfan](https://github.com/lowdevco)

@@ -1,0 +1,100 @@
+<!-- LEFT PANE: GENERATION SETTINGS -->
+<aside class="w-[320px] bg-[#18181b] border-r border-[#27272a] flex flex-col h-full shrink-0 relative z-20">
+    <!-- Top Tabs -->
+    <div class="flex items-center space-x-6 px-4 pt-4 pb-2 border-b border-[#27272a]">
+        <button class="text-white font-medium text-sm pb-2 border-b-2 border-[#3b82f6]">Video Generation</button>
+    </div>
+    
+    <!-- Settings Content -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-5 no-scrollbar">
+        
+        <!-- Model -->
+        <div class="space-y-1">
+            <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block">Model</label>
+            <div class="relative group bg-[#09090b] border border-[#27272a] rounded-lg p-3 cursor-pointer flex items-center justify-between">
+                <div class="flex items-center space-x-2 pointer-events-none absolute left-3">
+                    <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                </div>
+                <select id="modelSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4" onchange="window.location.href = '/video/' + this.value + '/'">
+                    <option value="seedance_2_5" class="bg-[#18181b] text-white">Seedance 2.5</option>
+                    <option value="kling_3_0" class="bg-[#18181b] text-white" selected>Kling 3.0</option>
+                </select>
+                <!-- Secret override to ensure FormData has the value even if disabled -->
+                <input type="hidden" id="modelSelectValue" value="kling-v3">
+            </div>
+        </div>
+
+        <!-- Time (Duration) -->
+        <div class="space-y-1">
+            <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block">Time</label>
+            <div class="relative group bg-[#09090b] border border-[#27272a] rounded-lg p-3 cursor-pointer flex items-center justify-between">
+                <div class="flex items-center space-x-2 pointer-events-none absolute left-3">
+                    <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                </div>
+                <select id="durationSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4">
+                    <option value="5" class="bg-[#18181b] text-white" selected>5s</option>
+                    <option value="10" class="bg-[#18181b] text-white">10s</option>
+                </select>
+                <svg class="w-3 h-3 text-[#a1a1aa] pointer-events-none absolute right-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+        </div>
+
+        <!-- Aspect Ratio -->
+        <div class="space-y-1">
+            <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block">Aspect Ratio</label>
+            <div class="relative group bg-[#09090b] border border-[#27272a] rounded-lg p-3 cursor-pointer flex items-center justify-between">
+                <div class="flex items-center space-x-2 pointer-events-none absolute left-3">
+                    <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                </div>
+                <select id="ratioSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4">
+                    <option value="16:9" class="bg-[#18181b] text-white" selected>16:9 (Landscape)</option>
+                    <option value="9:16" class="bg-[#18181b] text-white">9:16 (Portrait)</option>
+                    <option value="1:1" class="bg-[#18181b] text-white">1:1 (Square)</option>
+                </select>
+                <svg class="w-3 h-3 text-[#a1a1aa] pointer-events-none absolute right-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+        </div>
+
+        <!-- Resolution -->
+        <div class="space-y-1">
+            <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block">Resolution</label>
+            <div class="relative group bg-[#09090b] border border-[#27272a] rounded-lg p-3 cursor-pointer flex items-center justify-between">
+                <div class="flex items-center space-x-2 pointer-events-none absolute left-3">
+                    <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                </div>
+                <select id="resolutionSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4">
+                    <option value="720p" class="bg-[#18181b] text-white">720p</option>
+                    <option value="1080p" class="bg-[#18181b] text-white" selected>1080p</option>
+                    <option value="4k" class="bg-[#18181b] text-white text-[#3b82f6] font-bold">4K</option>
+                </select>
+                <svg class="w-3 h-3 text-[#a1a1aa] pointer-events-none absolute right-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </div>
+        </div>
+        
+        <!-- References Module (Kling) -->
+        <div class="space-y-1 pt-2">
+            <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block mb-2">References (Kling Auth)</label>
+            <div id="referenceBox" class="flex flex-wrap justify-center content-start gap-3 overflow-y-auto p-3 w-full bg-[#09090b] border border-[#27272a] rounded-lg min-h-[90px] max-h-[240px] no-scrollbar relative border-[#3b82f6]/30">
+                <div onclick="openReferenceModal()" class="flex-shrink-0 w-16 h-16 bg-[#18181b] border border-[#27272a] rounded-xl flex items-center justify-center cursor-pointer hover:border-[#3b82f6] transition-colors group">
+                    <svg class="w-6 h-6 text-[#a1a1aa] group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </div>
+                <!-- Selected assets will populate here -->
+            </div>
+        </div>
+        
+        <!-- Prompt -->
+        <div class="space-y-1 relative">
+            <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block mb-2">Prompt</label>
+            <div id="promptInput" contenteditable="true" data-placeholder="Describe the visual change you want..." class="w-full min-h-[200px] max-h-[280px] overflow-y-auto bg-[#09090b] border border-[#27272a] rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-[#3b82f6] no-scrollbar relative empty:before:content-[attr(data-placeholder)] empty:before:text-[#a1a1aa] empty:before:pointer-events-none whitespace-pre-wrap break-words"></div>
+            <!-- Mention Dropdown -->
+            <div id="mentionDropdown" class="absolute bottom-full mb-1 left-0 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl hidden flex-col max-h-40 overflow-y-auto w-full z-50 p-1"></div>
+        </div>
+    </div>
+    
+    <!-- Generate Button -->
+    <div class="p-4 bg-[#18181b] border-t border-[#27272a]">
+        <button id="generateBtn" class="w-full py-3.5 bg-brand hover:bg-brand/90 text-white font-bold rounded-lg text-sm flex items-center justify-center transition-colors shadow-lg shadow-brand/20">
+            Generate Kling
+        </button>
+    </div>
+</aside>

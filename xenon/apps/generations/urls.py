@@ -3,7 +3,7 @@ from . import views
 
 urlpatterns = [
     path('', views.landing_page, name='landing_page'),
-    path('video/', views.video_studio, name='video_studio'),
+    path('video/<str:model>/', views.video_studio, name='video_studio'),
     path('assets/', views.assets, name='assets'),
     
     # API endpoints

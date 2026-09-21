@@ -4,6 +4,7 @@ from celery.exceptions import Retry
 from django.conf import settings
 from .models import Generation
 from .services.byteplus import BytePlusService
+from .services.kling import KlingService
 
 @shared_task(bind=True, max_retries=300)
 def generate_video_task(self, generation_id, base_url=""):
@@ -12,7 +13,10 @@ def generate_video_task(self, generation_id, base_url=""):
     except Generation.DoesNotExist:
         return
 
-    service = BytePlusService()
+    if generation.model_id.lower().startswith('kling'):
+        service = KlingService()
+    else:
+        service = BytePlusService()
 
     try:
         # 1. Submission
