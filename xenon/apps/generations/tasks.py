@@ -86,3 +86,68 @@ def generate_video_task(self, generation_id, base_url=""):
         generation.status = Generation.Status.FAILED
         generation.error_message = str(e)
         generation.save(update_fields=['status', 'error_message'])
+
+
+@shared_task(bind=True, max_retries=10)
+def generate_image_task(self, generation_id, base_url=""):
+    try:
+        generation = Generation.objects.get(id=generation_id)
+    except Generation.DoesNotExist:
+        return
+
+    from .services.gemini import GeminiService
+    service = GeminiService()
+
+    try:
+        if not generation.provider_task_id:
+            generation.status = Generation.Status.PROCESSING
+            generation.provider_task_id = service.generate_image(generation, base_url)
+            generation.save(update_fields=['status', 'provider_task_id'])
+            raise self.retry(countdown=3)
+
+        # Polling
+        task_data = service.check_status(generation.provider_task_id)
+        status = task_data.get('status')
+        
+        if status in ['running', 'queued', 'pending']:
+            progress = task_data.get('progress', generation.progress + 20)
+            generation.progress = min(progress, 99)
+            generation.save(update_fields=['progress'])
+            raise self.retry(countdown=3)
+        elif status == 'succeeded':
+            generation.progress = 100
+            
+            image_url = task_data.get('image_url')
+            if image_url:
+                import requests
+                import os
+                from django.conf import settings
+                
+                filename = f"generated_img_{generation.id}.jpg"
+                relative_path = os.path.join('images', filename)
+                absolute_path = os.path.join(settings.MEDIA_ROOT, relative_path)
+                os.makedirs(os.path.dirname(absolute_path), exist_ok=True)
+                
+                headers = {"User-Agent": "Mozilla/5.0"}
+                with requests.get(image_url, headers=headers, stream=True, timeout=30.0) as response:
+                    response.raise_for_status()
+                    with open(absolute_path, "wb") as f:
+                        for chunk in response.iter_content(chunk_size=8192):
+                            if chunk:
+                                f.write(chunk)
+                
+                generation.image_file.name = relative_path
+                generation.status = Generation.Status.COMPLETED
+                generation.save(update_fields=['progress', 'image_file', 'status'])
+            else:
+                generation.status = Generation.Status.FAILED
+                generation.error_message = "No image URL returned"
+                generation.save(update_fields=['status', 'error_message'])
+                
+    except Retry:
+        raise
+    except Exception as e:
+        generation.status = Generation.Status.FAILED
+        generation.error_message = str(e)
+        generation.save(update_fields=['status', 'error_message'])
+

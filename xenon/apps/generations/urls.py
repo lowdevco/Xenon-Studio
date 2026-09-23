@@ -3,6 +3,7 @@ from . import views
 
 urlpatterns = [
     path('', views.landing_page, name='landing_page'),
+    path('image/<str:model>/', views.image_studio, name='image_studio'),
     path('video/<str:model>/', views.video_studio, name='video_studio'),
     path('assets/', views.assets, name='assets'),
     

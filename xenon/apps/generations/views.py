@@ -12,6 +12,21 @@ def landing_page(request):
     return render(request, 'pages/landing.html')
 
 @ensure_csrf_cookie
+def image_studio(request, model='nano_banana_2'):
+    if not request.session.session_key:
+        request.session.create()
+    
+    active_model = model
+    generations = Generation.objects.filter(model_id=active_model).order_by('-created_at')[:50]
+    all_generations = Generation.objects.filter(model_id__in=['nano_banana_2', 'nano_banana_pro', 'gpt_image']).order_by('-created_at')[:50]
+    
+    return render(request, 'pages/image_studio.html', {
+        'generations': generations,
+        'all_generations': all_generations,
+        'active_model': active_model
+    })
+
+@ensure_csrf_cookie
 def video_studio(request, model='seedance_2_5'):
     # Fetch all generations for the user (or session based for now)
     # Since we dropped user auth, we'll just show all generations for now, 
@@ -20,7 +35,8 @@ def video_studio(request, model='seedance_2_5'):
         request.session.create()
     
     # We can link generations to session_key
-    generations = Generation.objects.all().order_by('-created_at')[:20]
+    # Filter by model_id starting with dreamina (or exact match)
+    generations = Generation.objects.filter(model_id__icontains='dreamina').order_by('-created_at')[:20]
     
     # Read model from URL path parameter
     active_model = model
@@ -74,7 +90,14 @@ def create_generation(request):
                     pass
             
         # Dispatch Celery Task
-        generate_video_task.delay(generation.id, request.build_absolute_uri('/'))
+        from .tasks import generate_video_task, generate_image_task
+        
+        # Check if model is an image model (nano_banana_2, nano_banana_pro, gpt_image_2, etc.)
+        model_id = generation.model_id.lower()
+        if 'nano_banana' in model_id or 'gpt_image' in model_id or 'midjourney' in model_id or 'dalle' in model_id:
+            generate_image_task.delay(generation.id, request.build_absolute_uri('/'))
+        else:
+            generate_video_task.delay(generation.id, request.build_absolute_uri('/'))
         
         return JsonResponse({
             'status': 'success',
@@ -86,6 +109,44 @@ def create_generation(request):
 def get_generation_status(request, generation_id):
     try:
         generation = Generation.objects.get(id=generation_id)
+        
+        # INLINE MOCK PROGRESSION (so user doesn't need celery running for local dev image mock)
+        if generation.status in ['QUEUED', 'PROCESSING', 'PENDING'] and ('nano_banana' in generation.model_id or 'gpt_image' in generation.model_id):
+            try:
+                from .services.gemini import GeminiService
+                service = GeminiService()
+                if service.mock_mode:
+                    if not generation.provider_task_id:
+                        generation.provider_task_id = service.generate_image(generation)
+                        generation.status = 'PROCESSING'
+                        generation.save(update_fields=['provider_task_id', 'status'])
+                    else:
+                        task_data = service.check_status(generation.provider_task_id)
+                        status = task_data.get('status')
+                        if status in ['running', 'queued', 'pending']:
+                            generation.progress = task_data.get('progress', generation.progress)
+                            generation.save(update_fields=['progress'])
+                        elif status == 'succeeded':
+                            import requests
+                            from django.core.files.base import ContentFile
+
+                            generation.progress = 100
+                            image_url = task_data.get('image_url')
+                            
+                            headers = {"User-Agent": "Mozilla/5.0"}
+                            response = requests.get(image_url, headers=headers, stream=True, timeout=10)
+                            if response.status_code == 200:
+                                filename = f"mock_{generation.id}.jpg"
+                                generation.image_file.save(filename, ContentFile(response.content), save=False)
+                                generation.status = 'COMPLETED'
+                            else:
+                                generation.status = 'FAILED'
+                                generation.error_message = 'Failed to download mock image'
+                            generation.save(update_fields=['progress', 'image_file', 'status', 'error_message'])
+            except Exception as e:
+                print("MOCK ERROR:", str(e))
+                pass # Fall back to normal behavior if mock fails
+
         response_data = {
             'id': generation.id,
             'status': generation.status,
@@ -93,8 +154,11 @@ def get_generation_status(request, generation_id):
             'progress': generation.progress,
         }
         
-        if generation.status == 'COMPLETED' and generation.video_file:
-            response_data['video_url'] = generation.video_file.url
+        if generation.status == 'COMPLETED':
+            if generation.video_file:
+                response_data['video_url'] = generation.video_file.url
+            if generation.image_file:
+                response_data['image_url'] = generation.image_file.url
             
         return JsonResponse(response_data)
     except Generation.DoesNotExist:
@@ -149,7 +213,16 @@ def delete_generation(request, generation_id):
                 if os.path.exists(file_path):
                     try:
                         os.remove(file_path)
-                        print(f"Deleted physical file: {file_path}")
+                        print(f"Deleted physical video file: {file_path}")
+                    except Exception as e:
+                        print(f"Failed to delete physical file {file_path}: {e}")
+                        
+            if generation.image_file and hasattr(generation.image_file, 'path'):
+                file_path = generation.image_file.path
+                if os.path.exists(file_path):
+                    try:
+                        os.remove(file_path)
+                        print(f"Deleted physical image file: {file_path}")
                     except Exception as e:
                         print(f"Failed to delete physical file {file_path}: {e}")
 

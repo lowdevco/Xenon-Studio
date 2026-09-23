@@ -1,15 +1,16 @@
     <!-- Studio Navbar -->
-    <header class="h-14 bg-brand-bg border-b border-brand-border flex items-center justify-between px-6 shrink-0 z-50">
+    <header class="h-14 bg-brand-bg border-b border-brand-border flex items-center justify-between px-2 sm:px-6 shrink-0 z-50">
         <!-- Left: Logo -->
         <a href="{% url 'landing_page' %}" class="flex items-center space-x-3 hover:opacity-80 transition-opacity">
             <div class="w-7 h-7 rounded bg-brand flex items-center justify-center">
                 <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
             </div>
-            <span class="font-bold text-brand-text tracking-tight text-lg">Xenon Studio</span>
+            <span class="font-bold text-brand-text tracking-tight text-lg hidden sm:block">Xenon Studio</span>
         </a>
 
         <!-- Middle: Links -->
         <nav class="flex items-center space-x-1">
+            <a href="{% url 'image_studio' model='nano_banana_2' %}" class="px-5 py-1.5 text-sm font-medium {% if request.resolver_match.url_name == 'image_studio' %}text-brand bg-brand/10 rounded-full{% else %}text-brand-muted hover:text-brand-text{% endif %} transition-colors">Image</a>
             <a href="{% url 'video_studio' model='seedance_2_5' %}" class="px-5 py-1.5 text-sm font-medium {% if request.resolver_match.url_name == 'video_studio' %}text-brand bg-brand/10 rounded-full{% else %}text-brand-muted hover:text-brand-text{% endif %} transition-colors">Video</a>
         </nav>
 
@@ -17,10 +18,10 @@
         <div class="flex items-center space-x-4">
             <a href="{% url 'assets' %}" class="flex items-center space-x-1.5 px-3 py-1.5 text-sm font-medium {% if request.resolver_match.url_name == 'assets' %}text-brand bg-brand/10 rounded-full{% else %}text-brand-muted hover:text-brand-text{% endif %} transition-colors">
                 <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4"></path></svg>
-                <span>Assets</span>
+                <span class="hidden sm:inline">Assets</span>
             </a>
             <div class="w-px h-5 bg-brand-border"></div>
-            <h5>Lowdevco</h5>
+            <h5 class="hidden sm:block">Lowdevco</h5>
                         <!-- User Placeholder -->
             <button class="w-8 h-8 rounded-full bg-brand-surface border border-brand-border flex items-center justify-center hover:border-brand-muted transition-colors">
                 <svg class="w-4 h-4 text-brand-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>

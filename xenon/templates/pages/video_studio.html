@@ -3,7 +3,7 @@
 {% block content %}
 
 
-<div class="flex-1 flex w-full h-full bg-[#09090b] overflow-hidden text-[#f4f4f5]">
+<div class="flex-1 flex flex-col md:flex-row w-full h-full bg-[#09090b] overflow-hidden text-[#f4f4f5]">
     
     {% if active_model == 'kling_3_0' %}
         {% include 'video_models/kling_3_0.html' %}
@@ -803,6 +803,9 @@
 
         const modelValue = document.getElementById('modelSelectValue').value;
 
+        const audioToggle = document.getElementById('audioToggle');
+        const generateAudio = audioToggle ? audioToggle.checked : false;
+
         const formData = new FormData();
         formData.append('prompt', prompt);
         formData.append('reference_ids', selectedReferences.map(r => r.id).join(','));
@@ -810,7 +813,7 @@
         formData.append('ratio', ratioSelect.value);
         formData.append('resolution', resSelect.value);
         formData.append('duration', durationSelect.value.replace('s', '')); // Ensure it's just the number
-        formData.append('generate_audio', true); 
+        formData.append('generate_audio', generateAudio); 
         formData.append('watermark', false);
 
         try {

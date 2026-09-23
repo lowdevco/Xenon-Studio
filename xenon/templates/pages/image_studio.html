@@ -1,0 +1,885 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<style>
+    /* Hide scrollbar for clean look */
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    /* We use normal grid now instead of masonry to avoid empty right-side columns */
+</style>
+
+<div class="flex-1 flex flex-col w-full h-full bg-[#09090b] relative text-[#f4f4f5] overflow-hidden">
+    
+    <!-- Global History Button -->
+    <button onclick="toggleGlobalHistory()" class="absolute top-6 right-6 z-40 bg-[#18181b] border border-[#27272a] hover:border-[#3b82f6] text-white px-4 py-2 rounded-xl flex items-center space-x-2 shadow-lg transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        <span class="text-sm font-bold">Image History</span>
+    </button>
+
+    <!-- Main Background Canvas (Scrollable Grid) -->
+    <div id="mainCanvas" class="w-full h-full overflow-y-auto no-scrollbar p-6 pt-20 pb-40">
+        
+        <!-- Empty State (Only shows if no generations exist) -->
+        <div id="emptyState" class="{% if generations %}hidden{% endif %} flex flex-col items-center justify-center w-full h-full transition-all duration-500 min-h-[60vh]">
+            <h1 class="text-[32px] font-black text-white text-center uppercase tracking-tight leading-tight">
+                START CREATING WITH<br>
+                <span class="text-[#3b82f6]">XENON STUDIO</span>
+            </h1>
+            <p class="mt-4 text-[#a1a1aa] text-[15px] text-center font-medium">
+                Turn your ideas into stunning visuals with AI
+            </p>
+        </div>
+
+        <!-- History Grid (Normal CSS Grid, fills left to right) -->
+        <div id="historyGrid" class="{% if not generations %}hidden{% endif %} grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {% for gen in generations %}
+            <div class="masonry-item history-item cursor-pointer group/item bg-[#18181b] rounded-xl overflow-hidden border border-[#27272a] hover:border-[#3b82f6] relative shadow-lg" 
+                 data-id="{{ gen.id }}" 
+                 data-status="{{ gen.status }}">
+                
+                {% if gen.image_file %}
+                    <img src="{{ gen.image_file.url }}" class="w-full h-auto object-contain" loading="lazy">
+                    <div class="absolute bottom-2 left-2 z-20 opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none">
+                        <span class="model-badge bg-black/80 text-brand text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur border border-white/10 tracking-wider" data-model="{{ gen.model_id }}">
+                            {{ gen.model_id }}
+                        </span>
+                    </div>
+                    <div class="absolute top-2 right-2 z-20 flex space-x-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <button onclick="reusePrompt(event, '{{ gen.prompt|escapejs }}')" class="w-8 h-8 bg-black/60 hover:bg-[#3b82f6] backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Reuse Prompt">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        </button>
+                        <button onmouseenter="showInfoPopover(event, '{{ gen.id }}')" onmouseleave="hideInfoPopover()" class="w-8 h-8 bg-black/60 hover:bg-[#3b82f6] backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Info">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        </button>
+                        <a href="{{ gen.image_file.url }}" download class="grid-download-btn w-8 h-8 bg-black/60 hover:bg-[#3b82f6] backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Download">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                        </a>
+                        <button onclick="deleteGeneration(event, '{{ gen.id }}')" class="grid-delete-btn w-8 h-8 bg-black/60 hover:bg-red-600 backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Delete">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                        <!-- Hidden Data for Popover -->
+                        <div id="data-{{ gen.id }}" data-prompt="{{ gen.prompt|escapejs }}" data-model="{{ gen.model_id }}" data-date="{{ gen.created_at|date:'d M Y' }}" data-ratio="{{ gen.ratio }}" class="hidden"></div>
+                    </div>
+                {% else %}
+                    <!-- Processing / Failed Placeholder -->
+                    <div class="w-full aspect-square flex flex-col items-center justify-center p-6 text-center bg-[#18181b]">
+                        {% if gen.status == 'FAILED' %}
+                            <svg class="w-8 h-8 text-red-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            <span class="text-sm font-bold text-white mb-1">Failed</span>
+                            <span class="text-[11px] text-[#a1a1aa] line-clamp-2">{{ gen.error_message|default:"Generation failed" }}</span>
+                        {% else %}
+                            <div class="relative flex items-center justify-center mb-3">
+                                <svg class="animate-spin w-10 h-10 text-[#27272a]" fill="none" viewBox="0 0 24 24"><circle class="opacity-100" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"></circle></svg>
+                                <svg class="animate-spin absolute w-10 h-10 text-[#3b82f6]" fill="none" viewBox="0 0 24 24"><path class="opacity-100" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2a10 10 0 0 1 10 10"></path></svg>
+                            </div>
+                            <span class="text-sm font-bold text-white mb-1 status-text">{{ gen.status|title }}...</span>
+                            <span class="text-[11px] text-[#a1a1aa] progress-text">{{ gen.progress }}%</span>
+                        {% endif %}
+                    </div>
+                    <!-- IMPORTANT: Delete Button available on ALL states including Processing/Queued -->
+                    <div class="absolute top-2 right-2 z-20 flex space-x-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                        <button onclick="deleteGeneration(event, '{{ gen.id }}')" class="grid-delete-btn w-8 h-8 bg-black/60 hover:bg-red-600 backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Delete">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                        </button>
+                    </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Floating Prompt Bar (Always at bottom) -->
+    <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 w-full max-w-[900px] z-30 px-4 transition-all duration-300" id="floatingPromptBar">
+        <div class="bg-[#18181b] border border-[#27272a] rounded-[20px] p-3 shadow-2xl flex flex-col backdrop-blur-xl bg-opacity-95" id="dragDropArea">
+            <div id="referenceBox" class="flex flex-wrap gap-2 mb-2 hidden px-2"></div>
+
+            <!-- Top Input Row -->
+            <div class="flex items-center px-2 py-2 mb-3 relative">
+                <button onclick="openReferenceModal()" class="w-7 h-7 rounded-full bg-[#27272a] hover:bg-[#3f3f46] flex items-center justify-center text-[#a1a1aa] hover:text-white mr-3 shrink-0 transition-colors" title="Add Reference">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                </button>
+                <div id="promptInput" contenteditable="true" data-placeholder="Describe the scene you imagine" class="w-full bg-transparent border-none text-white text-[15px] font-medium focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-[#82828a] empty:before:pointer-events-none whitespace-pre-wrap break-words min-h-[24px] max-h-[100px] overflow-y-auto no-scrollbar relative"></div>
+                <!-- Mention Dropdown -->
+                <div id="mentionDropdown" class="absolute bottom-full mb-2 left-0 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl hidden flex-col max-h-40 overflow-y-auto w-64 z-50 p-1"></div>
+            </div>
+            
+            <!-- Bottom Controls Row -->
+            <div class="flex items-center justify-between px-2">
+                <div class="flex items-center space-x-2 overflow-x-auto no-scrollbar">
+                    
+                    <!-- Model Selector -->
+                    <div class="relative group inline-block">
+                        <select id="modelSelect" class="appearance-none bg-[#27272a] hover:bg-[#3f3f46] pl-8 pr-7 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors cursor-pointer outline-none shadow-sm">
+                            <option value="nano_banana_2" {% if active_model == 'nano_banana_2' %}selected{% endif %}>Nano Banana 2</option>
+                            <option value="nano_banana_pro" {% if active_model == 'nano_banana_pro' %}selected{% endif %}>Nano Banana Pro</option>
+                        </select>
+                        <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg class="w-4 h-4 text-[#3B82F6]" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+                        </div>
+                        <div class="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg class="w-3 h-3 text-[#a1a1aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Ratio -->
+                    <div class="relative group inline-block">
+                        <select id="ratioSelect" class="appearance-none bg-[#27272a] hover:bg-[#3f3f46] pl-8 pr-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors cursor-pointer outline-none shadow-sm">
+                            <option value="16:9">16:9</option>
+                            <option value="1:1">1:1</option>
+                            <option value="9:16">9:16</option>
+                        </select>
+                        <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Quality -->
+                    <div class="relative group inline-block">
+                        <select id="qualitySelect" class="appearance-none bg-[#27272a] hover:bg-[#3f3f46] pl-8 pr-4 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors cursor-pointer outline-none shadow-sm">
+                            <option value="high">High</option>
+                            <option value="standard">Standard</option>
+                        </select>
+                        <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg class="w-3.5 h-3.5 text-[#a1a1aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Resolution -->
+                    <div class="relative group inline-block">
+                        <select id="resolutionSelect" class="appearance-none bg-[#27272a] hover:bg-[#3f3f46] pl-7 pr-3 py-2 rounded-xl text-[13px] font-semibold text-white transition-colors cursor-pointer outline-none shadow-sm">
+                            <option value="2k">2K</option>
+                            <option value="4k">4K</option>
+                            <option value="1080p">1080p</option>
+                        </select>
+                        <div class="absolute left-2.5 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                            <svg class="w-3 h-3 text-[#a1a1aa]" fill="none" viewBox="0 0 24 24" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+                        </div>
+                    </div>
+
+                    <!-- Count -->
+                    <div class="flex items-center bg-[#27272a] rounded-xl text-[13px] font-semibold text-white shadow-sm overflow-hidden border border-[#27272a]">
+                        <button id="decreaseCountBtn" class="px-2.5 py-2 hover:bg-[#3f3f46] transition-colors border-r border-[#3f3f46]">-</button>
+                        <span id="imageCountDisplay" class="px-4">1/4</span>
+                        <button id="increaseCountBtn" class="px-2.5 py-2 hover:bg-[#3f3f46] transition-colors border-l border-[#3f3f46]">+</button>
+                    </div>
+
+                </div>
+                
+                <button id="generateBtn" class="bg-[#3b82f6] hover:bg-[#2563eb] text-white font-bold text-[14px] px-6 py-2 rounded-xl flex items-center justify-center transition-all transform hover:scale-[1.02] active:scale-95 shadow-md ml-4">
+                    <span>Generate</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- INFO POPOVER -->
+<div id="infoPopover" class="fixed z-[9999] w-[320px] bg-[#18181b] border border-[#27272a] rounded-2xl shadow-2xl opacity-0 pointer-events-none transition-opacity duration-200 flex flex-col p-4 transform -translate-y-2">
+    <div class="text-white text-sm font-bold truncate mb-3" id="popoverTitle">Title</div>
+    
+    <!-- Prompt Box -->
+    <div class="bg-[#27272a] rounded-xl p-3 mb-4">
+        <p class="text-white text-[13px] leading-relaxed max-h-32 overflow-y-auto no-scrollbar" id="popoverPrompt">Prompt goes here...</p>
+    </div>
+    
+    <!-- Meta Data -->
+    <div class="space-y-2">
+        <p class="text-[#a1a1aa] text-[11px]" id="popoverDate">Created on 23 Sept 2026</p>
+        <div class="flex items-center space-x-2 text-[#a1a1aa] text-[12px] font-medium">
+            <svg class="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"></path></svg>
+            <span id="popoverModel">Nano Banana Pro</span>
+        </div>
+        <div class="flex items-center space-x-2 text-[#a1a1aa] text-[12px] font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+            <span id="popoverRatio">9:16</span>
+        </div>
+    </div>
+</div>
+
+<!-- REFERENCE MODAL -->
+<div id="referenceModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 hidden flex items-center justify-center opacity-0 transition-opacity duration-200">
+    <div class="bg-[#18181b] border border-[#27272a] rounded-xl w-[800px] h-[600px] flex flex-col shadow-2xl scale-95 transition-transform duration-200" id="referenceModalContent">
+        
+        <div class="flex items-center justify-between px-6 py-4 border-b border-[#27272a]">
+            <h2 class="text-lg font-bold text-white">Uploads</h2>
+            <button onclick="closeReferenceModal()" class="text-[#a1a1aa] hover:text-white">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 relative bg-[#09090b] rounded-b-xl">
+            <div id="pane-uploads" class="h-full flex flex-col">
+                <div class="flex justify-between items-center mb-6">
+                    <p class="text-sm text-[#a1a1aa]">Select media to use as references</p>
+                    <button onclick="document.getElementById('rawUploadInput').click()" class="px-4 py-2 bg-white text-black text-sm font-bold rounded-lg hover:bg-gray-200 transition-colors">Upload File</button>
+                    <input type="file" id="rawUploadInput" class="hidden" accept="image/*,video/*" onchange="handleRawUpload(event)">
+                </div>
+                
+                <div id="uploadsGrid" class="grid grid-cols-4 gap-4 overflow-y-auto pb-4 hidden"></div>
+                
+                <div id="uploadsEmpty" class="flex-1 flex flex-col items-center justify-center text-center space-y-4">
+                    <div class="w-16 h-16 bg-[#27272a] rounded-xl flex items-center justify-center text-2xl text-white">@</div>
+                    <div>
+                        <h3 class="text-white font-bold mb-1">No uploads yet</h3>
+                        <p class="text-sm text-[#a1a1aa]">Upload images or videos directly to reference them</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<!-- GLOBAL HISTORY SLIDEOVER -->
+<div id="globalHistoryPanel" class="fixed inset-y-0 right-0 w-full md:w-[400px] bg-[#09090b] border-l border-[#27272a] shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="flex items-center justify-between p-6 border-b border-[#27272a]">
+        <h2 class="text-xl font-bold text-white">Image History</h2>
+        <button onclick="toggleGlobalHistory()" class="text-[#a1a1aa] hover:text-white transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+        {% for gen in all_generations %}
+        <div class="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden group">
+            <div class="aspect-video relative bg-black">
+                {% if gen.video_file %}
+                    <video src="{{ gen.video_file.url }}" class="w-full h-full object-cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                {% elif gen.image_file %}
+                    <img src="{{ gen.image_file.url }}" class="w-full h-full object-cover" loading="lazy">
+                {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-[#a1a1aa] text-sm">{{ gen.status }}</div>
+                {% endif %}
+                <span class="model-badge absolute top-2 left-2 bg-black/80 text-[#3b82f6] text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur border border-white/10 tracking-wider" data-model="{{ gen.model_id }}">{{ gen.model_id }}</span>
+            </div>
+            <div class="p-3">
+                <div class="text-white text-sm font-medium mb-2 max-h-24 overflow-y-auto no-scrollbar" title="{{ gen.prompt }}">{{ gen.prompt }}</div>
+                <div class="flex items-center justify-between text-[11px] text-[#a1a1aa]">
+                    <span>{{ gen.created_at|date:"M j, Y h:i A" }}</span>
+                    <span>{{ gen.ratio }} • {{ gen.resolution }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
+
+
+{% block extra_js %}
+<script>
+    const generateBtn = document.getElementById('generateBtn');
+    const promptInput = document.getElementById('promptInput');
+    
+    // Counter Logic
+    let imageCount = 1;
+    const decreaseCountBtn = document.getElementById('decreaseCountBtn');
+    const increaseCountBtn = document.getElementById('increaseCountBtn');
+    const imageCountDisplay = document.getElementById('imageCountDisplay');
+
+    decreaseCountBtn.addEventListener('click', () => {
+        if (imageCount > 1) {
+            imageCount--;
+            imageCountDisplay.innerText = `${imageCount}/4`;
+        }
+    });
+    increaseCountBtn.addEventListener('click', () => {
+        if (imageCount < 4) {
+            imageCount++;
+            imageCountDisplay.innerText = `${imageCount}/4`;
+        }
+    });
+
+    // Keep URL in sync with dropdown
+    document.getElementById('modelSelect').addEventListener('change', function() {
+        window.location.href = `/image/${this.value}/`;
+    });
+
+    function resetGenerateBtn() {
+        generateBtn.disabled = false;
+        generateBtn.innerHTML = `<span>Generate</span>`;
+    }
+
+    // Grid Injection for new processing items
+    function injectPlaceholderCard(id, prompt) {
+        const grid = document.getElementById('historyGrid');
+        const emptyState = document.getElementById('emptyState');
+        
+        emptyState.classList.add('hidden');
+        grid.classList.remove('hidden');
+
+        const cardHTML = `
+            <div id="gen-card-${id}" class="masonry-item history-item group/item bg-[#18181b] rounded-xl overflow-hidden border border-[#27272a] hover:border-[#3b82f6] relative shadow-lg" data-status="QUEUED" data-id="${id}">
+                <div class="w-full aspect-square flex flex-col items-center justify-center p-6 text-center bg-[#18181b]">
+                    <div class="relative flex items-center justify-center mb-3">
+                        <svg class="animate-spin w-10 h-10 text-[#27272a]" fill="none" viewBox="0 0 24 24"><circle class="opacity-100" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"></circle></svg>
+                        <svg class="animate-spin absolute w-10 h-10 text-[#3b82f6]" fill="none" viewBox="0 0 24 24"><path class="opacity-100" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2a10 10 0 0 1 10 10"></path></svg>
+                    </div>
+                    <span class="text-sm font-bold text-white mb-1" id="status-text-${id}">Generating...</span>
+                    <span class="text-[11px] text-[#a1a1aa]" id="progress-text-${id}">0%</span>
+                </div>
+                <div class="absolute top-2 right-2 z-20 flex space-x-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <button onclick="deleteGeneration(event, '${id}')" class="grid-delete-btn w-8 h-8 bg-black/60 hover:bg-red-600 backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            </div>
+        `;
+        grid.insertAdjacentHTML('afterbegin', cardHTML);
+    }
+
+    function updateCardState(id, data) {
+        setTimeout(formatBadges, 50);
+        const card = document.getElementById(`gen-card-${id}`);
+        if (!card) return;
+
+        card.dataset.status = data.status;
+
+        if (data.status === 'COMPLETED') {
+            card.innerHTML = `
+                <img src="${data.image_url || data.video_url}" class="w-full h-auto object-contain" loading="lazy">
+                <div class="absolute bottom-2 left-2 z-20 opacity-0 group-hover/item:opacity-100 transition-opacity pointer-events-none">
+                    <span class="model-badge bg-black/80 text-brand text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur border border-white/10 tracking-wider" data-model="${document.getElementById('modelSelect').value}">
+                        ${document.getElementById('modelSelect').value}
+                    </span>
+                </div>
+                <div class="absolute top-2 right-2 z-20 flex space-x-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <button onclick="reusePrompt(event, '${(data.prompt || '').replace(/'/g, "\'")}')" class="w-8 h-8 bg-black/60 hover:bg-[#3b82f6] backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Reuse Prompt">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    </button>
+                    <button onmouseenter="showInfoPopover(event, '${id}')" onmouseleave="hideInfoPopover()" class="w-8 h-8 bg-black/60 hover:bg-[#3b82f6] backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Info">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    </button>
+                    <a href="${data.image_url || data.video_url}" download class="grid-download-btn w-8 h-8 bg-black/60 hover:bg-[#3b82f6] backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Download">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    </a>
+                    <button onclick="deleteGeneration(event, '${id}')" class="grid-delete-btn w-8 h-8 bg-black/60 hover:bg-red-600 backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                    <div id="data-${id}" data-prompt="${(data.prompt || '').replace(/'/g, '&#39;')}" data-model="${document.getElementById('modelSelect').value}" data-date="Just now" data-ratio="${document.getElementById('ratioSelect').value}" class="hidden"></div>
+                </div>
+            `;
+        } else if (data.status === 'FAILED') {
+            card.innerHTML = `
+                <div class="w-full aspect-square flex flex-col items-center justify-center p-6 text-center bg-[#18181b]">
+                    <svg class="w-8 h-8 text-red-500 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    <span class="text-sm font-bold text-white mb-1">Failed</span>
+                    <span class="text-[11px] text-[#a1a1aa] line-clamp-2">${data.error_message || "Generation failed"}</span>
+                </div>
+                <div class="absolute top-2 right-2 z-20 flex space-x-1 opacity-0 group-hover/item:opacity-100 transition-opacity">
+                    <button onclick="deleteGeneration(event, '${id}')" class="grid-delete-btn w-8 h-8 bg-black/60 hover:bg-red-600 backdrop-blur rounded-lg flex items-center justify-center text-white transition-colors border border-white/10 shadow-lg" title="Delete">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+            `;
+        } else {
+            const statusEl = document.getElementById(`status-text-${id}`);
+            const progEl = document.getElementById(`progress-text-${id}`);
+            if(statusEl) statusEl.textContent = data.status + '...';
+            if(progEl) progEl.textContent = (data.progress || 0) + '%';
+        }
+    }
+
+    async function pollGenerationStatus(statusUrl, id, isLast) {
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(statusUrl);
+                const data = await res.json();
+                
+                if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                    clearInterval(interval);
+                    updateCardState(id, data);
+                    if (isLast) resetGenerateBtn();
+                } else {
+                    updateCardState(id, data);
+                }
+            } catch(e) {}
+        }, 2000);
+    }
+
+    window.deleteGeneration = async function(e, id) {
+        e.stopPropagation();
+        e.preventDefault();
+        try {
+            const res = await fetch(`/generations/${id}/delete/`, { method: 'DELETE', headers: { 'X-CSRFToken': csrftoken } });
+            if(res.ok) {
+                const item = e.target.closest('.masonry-item');
+                if (item) item.remove();
+            }
+        } catch(err) { }
+    };
+
+    // Actual Generation Logic
+    generateBtn.addEventListener('click', async () => {
+        const prompt = promptInput.innerText.trim();
+        if (!prompt) return;
+        
+        const pillNodes = promptInput.querySelectorAll('.mention-pill');
+        const refUrls = Array.from(pillNodes).map(p => p.dataset.url);
+        const refIds = selectedReferences.filter(r => refUrls.includes(r.url)).map(r => r.id);
+
+        generateBtn.disabled = true;
+        generateBtn.innerHTML = 'Starting...';
+
+        let failedCount = 0;
+
+        for (let i = 0; i < imageCount; i++) {
+            const formData = new FormData();
+            formData.append('prompt', prompt);
+            formData.append('model', document.getElementById('modelSelect').value);
+            formData.append('ratio', document.getElementById('ratioSelect').value);
+            formData.append('resolution', document.getElementById('resolutionSelect').value);
+            if (refIds.length > 0) formData.append('reference_ids', refIds.join(','));
+            
+            try {
+                const res = await fetch("{% url 'create_generation' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    body: formData
+                });
+                const data = await res.json();
+                
+                if(data.status === 'success') {
+                    injectPlaceholderCard(data.generation_id, prompt);
+                    pollGenerationStatus(data.status_url, data.generation_id, i === (imageCount-1));
+                } else {
+                    failedCount++;
+                }
+            } catch(err) {
+                failedCount++;
+            }
+        }
+
+        if (failedCount === imageCount) {
+            resetGenerateBtn();
+            showToast('Failed to start generations', 'error');
+        } else if (failedCount > 0 && failedCount < imageCount) {
+            showToast('Some generations failed to start', 'error');
+        }
+    });
+
+    // Mention feature: Dropdown suggestions
+    const mentionDropdown = document.getElementById('mentionDropdown');
+    const mentionTooltip = document.createElement('div');
+    mentionTooltip.className = 'fixed z-[9999] w-32 h-32 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl opacity-0 pointer-events-none transition-opacity duration-200 flex items-center justify-center overflow-hidden';
+    document.body.appendChild(mentionTooltip);
+
+    const referenceBox = document.getElementById('referenceBox');
+    let selectedReferences = [];
+
+    promptInput.addEventListener('input', (e) => {
+        const sel = window.getSelection();
+        if (!sel.rangeCount) return;
+        const range = sel.getRangeAt(0);
+        if (range.startContainer.nodeType !== Node.TEXT_NODE) {
+            mentionDropdown.classList.add('hidden');
+            mentionDropdown.classList.remove('flex');
+            return;
+        }
+        const textBeforeCursor = range.startContainer.textContent.substring(0, range.startOffset);
+        const match = textBeforeCursor.match(/(?:^|\s)@(\w*)$/);
+        
+        if (match) {
+            const query = match[1].toLowerCase();
+            const filtered = selectedReferences.filter(r => r.label.toLowerCase().includes(query) || r.shortLabel.toLowerCase().includes(query));
+            if (filtered.length > 0) {
+                mentionDropdown.innerHTML = filtered.map(r => `
+                    <div class="px-3 py-2 hover:bg-[#27272a] cursor-pointer text-sm text-white flex items-center space-x-2 rounded" onmousedown="insertMention('${r.id}', '${r.label}', '${r.type}', '${r.url}')">
+                        <span class="text-[#3b82f6] text-[10px] font-bold bg-[#3b82f6]/20 px-1.5 py-0.5 rounded uppercase">${r.type === 'video' ? 'VID' : 'IMG'}</span>
+                        <span>${r.label}</span>
+                    </div>
+                `).join('');
+                mentionDropdown.classList.remove('hidden');
+                mentionDropdown.classList.add('flex');
+                promptInput.dataset.mentionMatchLength = match[1].length + 1;
+            } else {
+                mentionDropdown.classList.add('hidden');
+                mentionDropdown.classList.remove('flex');
+            }
+        } else {
+            mentionDropdown.classList.add('hidden');
+            mentionDropdown.classList.remove('flex');
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!promptInput.contains(e.target) && !mentionDropdown.contains(e.target)) {
+            mentionDropdown.classList.add('hidden');
+            mentionDropdown.classList.remove('flex');
+        }
+    });
+
+    window.insertMention = function(id, label, type, url) {
+        promptInput.focus();
+        const sel = window.getSelection();
+        if (sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0);
+            const matchLen = parseInt(promptInput.dataset.mentionMatchLength || '0');
+            if (range.startContainer.nodeType === Node.TEXT_NODE && matchLen > 0) {
+                range.setStart(range.startContainer, Math.max(0, range.startOffset - matchLen));
+                range.deleteContents();
+            }
+            const pillHTML = `<span contenteditable="false" class="text-[#3b82f6] font-medium px-1 bg-[#3b82f6]/10 rounded cursor-pointer mention-pill inline-block" data-url="${url}" data-type="${type}">@${label}</span>&nbsp;`;
+            const temp = document.createElement('div');
+            temp.innerHTML = pillHTML;
+            const frag = document.createDocumentFragment();
+            let node, lastNode;
+            while ((node = temp.firstChild)) {
+                lastNode = frag.appendChild(node);
+            }
+            range.insertNode(frag);
+            if (lastNode) {
+                range.setStartAfter(lastNode);
+                range.collapse(true);
+                sel.removeAllRanges();
+                sel.addRange(range);
+            }
+        }
+        mentionDropdown.classList.add('hidden');
+        mentionDropdown.classList.remove('flex');
+    };
+
+    document.addEventListener('mouseover', (e) => {
+        const pill = e.target.closest('.mention-pill');
+        if (pill) {
+            const rect = pill.getBoundingClientRect();
+            mentionTooltip.style.top = (rect.top - 140) + 'px';
+            mentionTooltip.style.left = (rect.left + rect.width / 2 - 64) + 'px';
+            const url = pill.dataset.url;
+            const type = pill.dataset.type;
+            if (type === 'video') {
+                mentionTooltip.innerHTML = `<video src="${url}" class="w-full h-full object-cover" autoplay muted loop></video>`;
+            } else {
+                mentionTooltip.innerHTML = `<img src="${url}" class="w-full h-full object-cover">`;
+            }
+            mentionTooltip.classList.remove('opacity-0');
+        }
+    });
+
+    document.addEventListener('mouseout', (e) => {
+        const pill = e.target.closest('.mention-pill');
+        if (pill) {
+            mentionTooltip.classList.add('opacity-0');
+        }
+    });
+
+    // Reference Logic
+    function updateReferenceLabels() {
+        let imgCount = 0, vidCount = 0;
+        selectedReferences.forEach(ref => {
+            if (ref.type === 'video') {
+                vidCount++;
+                ref.label = `video${vidCount}`;
+                ref.shortLabel = `v${vidCount}`;
+            } else {
+                imgCount++;
+                ref.label = `image${imgCount}`;
+                ref.shortLabel = `i${imgCount}`;
+            }
+            const el = referenceBox.querySelector(`[data-id="${ref.id}"]`);
+            if(el) {
+                const badge = el.querySelector('.badge-label');
+                if(badge) badge.textContent = ref.shortLabel;
+            }
+        });
+        if (selectedReferences.length > 0) referenceBox.classList.remove('hidden');
+        else referenceBox.classList.add('hidden');
+    }
+
+    function addReference(id, url) {
+        if(selectedReferences.some(r => r.id === id)) return;
+        const isVideo = url && url.toLowerCase().match(/\.(mp4|webm|mov)$/);
+        selectedReferences.push({ id, url, type: isVideo ? 'video' : 'image', label: '', shortLabel: '' });
+        
+        const div = document.createElement('div');
+        div.className = 'flex-shrink-0 w-12 h-12 rounded-lg overflow-hidden relative group border-2 border-transparent hover:border-red-500 cursor-pointer transition-colors';
+        div.dataset.id = id;
+        div.onclick = () => removeReference(id, div);
+        
+        let mediaHtml = isVideo 
+            ? `<video src="${url}" class="w-full h-full object-cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>`
+            : `<img src="${url}" class="w-full h-full object-cover">`;
+        
+        div.innerHTML = `
+            ${mediaHtml}
+            <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </div>
+            <div class="absolute top-0 right-0 bg-[#3b82f6] text-white text-[8px] font-bold px-1 py-0.5 rounded-bl shadow badge-label"></div>
+        `;
+        referenceBox.appendChild(div);
+        updateReferenceLabels();
+        closeReferenceModal();
+    }
+    
+    function removeReference(id, element) {
+        selectedReferences = selectedReferences.filter(r => r.id !== id);
+        element.remove();
+        updateReferenceLabels();
+    }
+
+    // Modal
+    const referenceModal = document.getElementById('referenceModal');
+    const referenceModalContent = document.getElementById('referenceModalContent');
+    
+    window.openReferenceModal = function() {
+        referenceModal.classList.remove('hidden');
+        void referenceModal.offsetWidth;
+        referenceModal.classList.remove('opacity-0');
+        referenceModalContent.classList.remove('scale-95');
+    }
+    window.closeReferenceModal = function() {
+        referenceModal.classList.add('opacity-0');
+        referenceModalContent.classList.add('scale-95');
+        setTimeout(() => referenceModal.classList.add('hidden'), 200);
+    }
+
+    // Fetch and Handle Assets
+    let availableAssets = [];
+    async function fetchAssets() {
+        try {
+            const res = await fetch('/uploads/');
+            const data = await res.json();
+            if (data.uploads) {
+                availableAssets = data.uploads;
+                renderAssetGrids();
+            }
+        } catch(e) { }
+    }
+    
+    window.deleteUpload = async function(e, id) {
+        e.stopPropagation();
+        try {
+            const res = await fetch(`/uploads/${id}/delete/`, { method: 'DELETE', headers: { 'X-CSRFToken': csrftoken } });
+            if(res.ok) { 
+                const el = referenceBox.querySelector(`[data-id="${id}"]`);
+                if(el) removeReference(id, el);
+                fetchAssets(); 
+            }
+        } catch(err) { }
+    }
+    
+    window.verifyUpload = async function(e, id) {
+        e.stopPropagation();
+        const div = e.currentTarget;
+        div.innerHTML = '<div class="absolute inset-0 bg-black/80 flex items-center justify-center"><div class="animate-spin rounded-full h-5 w-5 border-2 border-[#3b82f6] border-t-transparent"></div></div>';
+        try {
+            const res = await fetch(`/uploads/${id}/verify/?model=kling_3_0`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+            fetchAssets();
+        } catch(err) { fetchAssets(); }
+    }
+
+    function renderAssetGrids() {
+        const uploadsGrid = document.getElementById('uploadsGrid');
+        const uploadsEmpty = document.getElementById('uploadsEmpty');
+        if(availableAssets.length > 0) {
+            uploadsEmpty.classList.add('hidden');
+            uploadsGrid.classList.remove('hidden');
+            uploadsGrid.innerHTML = availableAssets.map(u => {
+                let statusHtml = '';
+                let clickHandler = '';
+                let overlayText = '';
+                
+                if (u.status === 'Verified') {
+                    statusHtml = '<span class="absolute top-1 left-1 bg-green-500 text-white text-[9px] px-1.5 py-0.5 rounded shadow">Ready</span>';
+                    clickHandler = `onclick="addReference('${u.id}', '${u.media_url}')"`;
+                    overlayText = 'Add Reference';
+                } else {
+                    statusHtml = '<span class="absolute top-1 left-1 bg-yellow-500 text-black text-[9px] px-1.5 py-0.5 rounded shadow">Verify</span>';
+                    clickHandler = `onclick="verifyUpload(event, '${u.id}')"`;
+                    overlayText = 'Verify File';
+                }
+
+                let mediaHtml = (u.media_url && u.media_url.toLowerCase().match(/\.(mp4|webm|mov)$/)) 
+                    ? `<video src="${u.media_url}" class="w-full h-full object-cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>`
+                    : `<img src="${u.media_url}" class="w-full h-full object-cover" loading="lazy">`;
+
+                return `
+                <div class="relative h-32 rounded-xl overflow-hidden bg-[#27272a] group cursor-pointer border-2 border-transparent hover:border-[#3b82f6] transition-all" ${clickHandler}>
+                    ${mediaHtml}
+                    ${statusHtml}
+                    <div class="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span class="text-white font-bold text-sm text-center px-2">${overlayText}</span>
+                    </div>
+                    <button onclick="deleteUpload(event, '${u.id}')" class="absolute top-1 right-1 p-1 bg-black/50 text-white rounded opacity-0 group-hover:opacity-100 hover:bg-red-500 transition-all z-10">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                    </button>
+                </div>
+                `
+            }).join('');
+        } else {
+            uploadsEmpty.classList.remove('hidden');
+            uploadsGrid.classList.add('hidden');
+        }
+    }
+    fetchAssets();
+
+    window.handleRawUpload = async function(e, droppedFile = null) {
+        const file = droppedFile || (e.target.files && e.target.files[0]);
+        if(file) {
+            const formData = new FormData();
+            formData.append('media_file', file);
+            showToast('Uploading file...', 'info');
+            try {
+                const res = await fetch("{% url 'create_upload' %}", {
+                    method: 'POST',
+                    headers: { 'X-CSRFToken': csrftoken },
+                    body: formData
+                });
+                const data = await res.json();
+                if(res.ok) {
+                    showToast('File uploaded successfully!', 'success');
+                    fetchAssets();
+                    if (droppedFile) {
+                        const vRes = await fetch(`/uploads/${data.id}/verify/?model=kling_3_0`, { method: 'POST', headers: { 'X-CSRFToken': csrftoken } });
+                        if(vRes.ok) addReference(data.id, data.media_url);
+                    }
+                } else {
+                    showToast(data.error || 'Upload failed', 'error');
+                }
+            } catch (err) {
+                showToast('Upload network error', 'error');
+            }
+            if(e && e.target) e.target.value = '';
+        }
+    }
+
+    // Drag and Drop Logic
+    const dragDropArea = document.getElementById('dragDropArea');
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => dragDropArea.addEventListener(eventName, preventDefaults, false));
+    function preventDefaults(e) { e.preventDefault(); e.stopPropagation(); }
+    ['dragenter', 'dragover'].forEach(eventName => dragDropArea.addEventListener(eventName, () => dragDropArea.classList.add('border-[#3b82f6]', 'bg-[#1f1f22]'), false));
+    ['dragleave', 'drop'].forEach(eventName => dragDropArea.addEventListener(eventName, () => dragDropArea.classList.remove('border-[#3b82f6]', 'bg-[#1f1f22]'), false));
+    dragDropArea.addEventListener('drop', (e) => {
+        let dt = e.dataTransfer;
+        let files = dt.files;
+        if(files.length > 0) handleRawUpload(null, files[0]);
+    }, false);
+
+    // Resume polling on page load for stuck items
+    document.querySelectorAll('.history-item').forEach(item => {
+        const status = item.dataset.status;
+        const id = item.dataset.id;
+        if (status === 'QUEUED' || status === 'PROCESSING' || status === 'PENDING') {
+            const interval = setInterval(async () => {
+                try {
+                    const res = await fetch(`/generations/status/${id}/`);
+                    const data = await res.json();
+                    
+                    if (data.status === 'COMPLETED' || data.status === 'FAILED') {
+                        clearInterval(interval);
+                        updateCardState(id, data);
+                    } else {
+                        updateCardState(id, data);
+                    }
+                } catch(e) {}
+            }, 2000);
+        }
+    });
+
+
+    window.toggleGlobalHistory = function() {
+        const panel = document.getElementById('globalHistoryPanel');
+        if(panel.classList.contains('translate-x-full')) {
+            panel.classList.remove('translate-x-full');
+        } else {
+            panel.classList.add('translate-x-full');
+        }
+    }
+
+    // Format model badges
+    function formatBadges() {
+        document.querySelectorAll('.model-badge').forEach(badge => {
+            const m = badge.dataset.model;
+            if(!m) return;
+            if (m === 'nano_banana_2') badge.textContent = 'Nano Banana 2';
+            else if (m === 'nano_banana_pro') badge.textContent = 'Nano Banana Pro';
+            else if (m.includes('seedance')) badge.textContent = 'Seedance 2.5';
+            else badge.textContent = m.replace(/_/g, ' ').toUpperCase();
+        });
+    }
+    formatBadges();
+
+
+    window.reusePrompt = function(e, promptText) {
+        e.preventDefault();
+        e.stopPropagation();
+        document.getElementById('promptInput').innerText = promptText;
+        showToast('Prompt copied to input', 'success');
+    };
+
+    const infoPopover = document.getElementById('infoPopover');
+    window.showInfoPopover = function(e, id) {
+        const dataEl = document.getElementById(`data-${id}`);
+        if (!dataEl) return;
+        
+        const prompt = dataEl.dataset.prompt;
+        const model = dataEl.dataset.model;
+        const date = dataEl.dataset.date;
+        const ratio = dataEl.dataset.ratio;
+
+        // Populate popover
+        document.getElementById('popoverTitle').innerText = prompt.length > 30 ? prompt.substring(0, 30) + '...' : prompt;
+        document.getElementById('popoverPrompt').innerText = prompt;
+        document.getElementById('popoverDate').innerText = 'Created on ' + date;
+        document.getElementById('popoverRatio').innerText = ratio;
+        
+        // Format model name cleanly
+        let modelName = model;
+        if (model === 'nano_banana_2') modelName = 'Nano Banana 2';
+        else if (model === 'nano_banana_pro') modelName = 'Nano Banana Pro';
+        else if (model.includes('seedance')) modelName = 'Seedance 2.5';
+        else modelName = model.replace(/_/g, ' ').toUpperCase();
+        document.getElementById('popoverModel').innerText = modelName;
+
+        // Position popover relative to the hovered button
+        const rect = e.target.closest('button').getBoundingClientRect();
+        infoPopover.style.top = (rect.bottom + window.scrollY + 10) + 'px';
+        infoPopover.style.left = (rect.left + window.scrollX - 280) + 'px'; // open to the left
+
+        infoPopover.classList.remove('opacity-0');
+    };
+
+    window.hideInfoPopover = function() {
+        infoPopover.classList.add('opacity-0');
+    };
+
+</script>
+
+
+<!-- GLOBAL HISTORY SLIDEOVER -->
+<div id="globalHistoryPanel" class="fixed inset-y-0 right-0 w-full md:w-[400px] bg-[#09090b] border-l border-[#27272a] shadow-2xl z-50 transform translate-x-full transition-transform duration-300 flex flex-col">
+    <div class="flex items-center justify-between p-6 border-b border-[#27272a]">
+        <h2 class="text-xl font-bold text-white">Image History</h2>
+        <button onclick="toggleGlobalHistory()" class="text-[#a1a1aa] hover:text-white transition-colors">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-4 space-y-4 no-scrollbar">
+        {% for gen in all_generations %}
+        <div class="bg-[#18181b] rounded-xl border border-[#27272a] overflow-hidden group">
+            <div class="aspect-video relative bg-black">
+                {% if gen.video_file %}
+                    <video src="{{ gen.video_file.url }}" class="w-full h-full object-cover" muted loop onmouseover="this.play()" onmouseout="this.pause()"></video>
+                {% elif gen.image_file %}
+                    <img src="{{ gen.image_file.url }}" class="w-full h-full object-cover" loading="lazy">
+                {% else %}
+                    <div class="w-full h-full flex items-center justify-center text-[#a1a1aa] text-sm">{{ gen.status }}</div>
+                {% endif %}
+                <span class="model-badge absolute top-2 left-2 bg-black/80 text-[#3b82f6] text-[10px] font-bold px-2 py-0.5 rounded backdrop-blur border border-white/10 tracking-wider" data-model="{{ gen.model_id }}">{{ gen.model_id }}</span>
+            </div>
+            <div class="p-3">
+                <div class="text-white text-sm font-medium mb-2 max-h-24 overflow-y-auto no-scrollbar" title="{{ gen.prompt }}">{{ gen.prompt }}</div>
+                <div class="flex items-center justify-between text-[11px] text-[#a1a1aa]">
+                    <span>{{ gen.created_at|date:"M j, Y h:i A" }}</span>
+                    <span>{{ gen.ratio }} • {{ gen.resolution }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+{% endblock %}
+

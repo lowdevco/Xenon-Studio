@@ -33,6 +33,7 @@ class Generation(models.Model):
     
     # After download, the file will be saved here
     video_file = models.FileField(upload_to='videos/', null=True, blank=True)
+    image_file = models.FileField(upload_to='images/', null=True, blank=True)
     
     error_message = models.TextField(blank=True, null=True)
     progress = models.IntegerField(default=0)
