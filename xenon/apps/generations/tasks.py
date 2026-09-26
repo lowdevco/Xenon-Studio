@@ -5,6 +5,7 @@ from django.conf import settings
 from .models import Generation
 from .services.byteplus import BytePlusService
 from .services.kling import KlingService
+from .services.omni import OmniService
 
 @shared_task(bind=True, max_retries=300)
 def generate_video_task(self, generation_id, base_url=""):
@@ -15,6 +16,8 @@ def generate_video_task(self, generation_id, base_url=""):
 
     if generation.model_id.lower().startswith('kling'):
         service = KlingService()
+    elif generation.model_id.lower() == 'omni_1_1_flash':
+        service = OmniService()
     else:
         service = BytePlusService()
 
@@ -95,8 +98,12 @@ def generate_image_task(self, generation_id, base_url=""):
     except Generation.DoesNotExist:
         return
 
-    from .services.gemini import GeminiService
-    service = GeminiService()
+    if generation.model_id in ['nano_banana_2', 'nano_banana_pro']:
+        from .services.nano_banana import NanoBananaService
+        service = NanoBananaService()
+    else:
+        # Unsupported model fallback
+        return
 
     try:
         if not generation.provider_task_id:

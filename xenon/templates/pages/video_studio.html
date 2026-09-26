@@ -7,6 +7,8 @@
     
     {% if active_model == 'kling_3_0' %}
         {% include 'video_models/kling_3_0.html' %}
+    {% elif active_model == 'omni_1_1_flash' %}
+        {% include 'video_models/omni_1_1_flash.html' %}
     {% else %}
         {% include 'video_models/seedance_2_5.html' %}
     {% endif %}
@@ -388,6 +390,25 @@
     }
 
     function addReference(id, url) {
+        if (typeof currentModalTarget !== 'undefined' && currentModalTarget !== 'ingredient') {
+            const isStart = currentModalTarget === 'start';
+            if (isStart) {
+                window.startFrameAsset = { id, url };
+                const img = document.getElementById('startFrameImg');
+                const txt = document.getElementById('startFrameText');
+                if(img) { img.src = url; img.classList.remove('hidden'); }
+                if(txt) { txt.classList.add('hidden'); }
+            } else {
+                window.endFrameAsset = { id, url };
+                const img = document.getElementById('endFrameImg');
+                const txt = document.getElementById('endFrameText');
+                if(img) { img.src = url; img.classList.remove('hidden'); }
+                if(txt) { txt.classList.add('hidden'); }
+            }
+            closeReferenceModal();
+            return;
+        }
+
         if(selectedReferences.some(r => r.id === id)) return;
         
         const isVideo = url && url.toLowerCase().match(/\.(mp4|webm|mov)$/);
@@ -556,7 +577,10 @@
     const referenceModal = document.getElementById('referenceModal');
     const referenceModalContent = document.getElementById('referenceModalContent');
     
-    function openReferenceModal() {
+    let currentModalTarget = 'ingredient';
+
+    function openReferenceModal(target = 'ingredient') {
+        currentModalTarget = target;
         referenceModal.classList.remove('hidden');
         void referenceModal.offsetWidth;
         referenceModal.classList.remove('opacity-0');
@@ -808,7 +832,16 @@
 
         const formData = new FormData();
         formData.append('prompt', prompt);
-        formData.append('reference_ids', selectedReferences.map(r => r.id).join(','));
+        let refIds = [];
+        let isFrameMode = (typeof currentRefMode !== 'undefined' && currentRefMode === 'frame');
+        if (isFrameMode) {
+            if (window.startFrameAsset) refIds.push(window.startFrameAsset.id);
+            if (window.endFrameAsset) refIds.push(window.endFrameAsset.id);
+        } else {
+            refIds = selectedReferences.map(r => r.id);
+        }
+        formData.append('reference_ids', refIds.join(','));
+        formData.append('frame_mode', isFrameMode ? 'true' : 'false');
         formData.append('model', modelValue);
         formData.append('ratio', ratioSelect.value);
         formData.append('resolution', resSelect.value);

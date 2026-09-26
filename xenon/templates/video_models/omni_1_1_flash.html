@@ -16,12 +16,11 @@
                     <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
                 </div>
                 <select id="modelSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4" onchange="window.location.href = '/video/' + this.value + '/'">
-                    <option value="seedance_2_5" class="bg-[#18181b] text-white" selected>Seedance 2.5</option>
+                    <option value="seedance_2_5" class="bg-[#18181b] text-white">Seedance 2.5</option>
                     <option value="kling_3_0" class="bg-[#18181b] text-white">Kling 3.0</option>
-                    <option value="omni_1_1_flash" class="bg-[#18181b] text-white">Omni 1.1 Flash</option>
+                    <option value="omni_1_1_flash" class="bg-[#18181b] text-white" selected>Omni 1.1 Flash</option>
                 </select>
-                <!-- Secret override to ensure FormData has the value even if disabled -->
-                <input type="hidden" id="modelSelectValue" value="dreamina-seedance-2-5-260628">
+                <input type="hidden" id="modelSelectValue" value="omni_1_1_flash">
             </div>
         </div>
 
@@ -33,7 +32,6 @@
                     <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                 </div>
                 <select id="durationSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4">
-                    <option value="4" class="bg-[#18181b] text-white">4s</option>
                     <option value="5" class="bg-[#18181b] text-white" selected>5s</option>
                     <option value="10" class="bg-[#18181b] text-white">10s</option>
                 </select>
@@ -49,9 +47,9 @@
                     <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
                 </div>
                 <select id="ratioSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4">
-                    <option value="16:9" class="bg-[#18181b] text-white" selected>16:9</option>
-                    <option value="9:16" class="bg-[#18181b] text-white">9:16</option>
-                    <option value="1:1" class="bg-[#18181b] text-white">1:1</option>
+                    <option value="16:9" class="bg-[#18181b] text-white" selected>16:9 (Landscape)</option>
+                    <option value="9:16" class="bg-[#18181b] text-white">9:16 (Portrait)</option>
+                    <option value="1:1" class="bg-[#18181b] text-white">1:1 (Square)</option>
                 </select>
                 <svg class="w-3 h-3 text-[#a1a1aa] pointer-events-none absolute right-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
@@ -65,14 +63,13 @@
                     <svg class="w-4 h-4 text-[#a1a1aa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 </div>
                 <select id="resolutionSelect" class="w-full bg-transparent text-sm font-medium text-white appearance-none cursor-pointer outline-none pl-7 pr-4">
-                    <option value="480p" class="bg-[#18181b] text-white" selected>480p</option>
-                    <option value="720p" class="bg-[#18181b] text-white">720p</option>
-                    <option value="1080p" class="bg-[#18181b] text-white">1080p</option>
+                    <option value="360p" class="bg-[#18181b] text-white">360p</option>
+                    <option value="720p" class="bg-[#18181b] text-white" selected>720p</option>
                 </select>
                 <svg class="w-3 h-3 text-[#a1a1aa] pointer-events-none absolute right-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
             </div>
         </div>
-
+        
         <!-- Audio Toggle -->
         <div class="space-y-1 pt-2">
             <div class="flex items-center justify-between p-3 bg-[#09090b] border border-[#27272a] rounded-lg">
@@ -87,21 +84,43 @@
             </div>
         </div>
         
-        <!-- References Module -->
+        <!-- Reference Mode Tabs -->
         <div class="space-y-1 pt-2">
-            <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block mb-2">References</label>
-            <div id="referenceBox" class="flex flex-wrap justify-center content-start gap-3 overflow-y-auto p-3 w-full bg-[#09090b] border border-[#27272a] rounded-lg min-h-[90px] max-h-[240px] no-scrollbar">
-                <div onclick="openReferenceModal()" class="flex-shrink-0 w-16 h-16 bg-[#18181b] border border-[#27272a] rounded-xl flex items-center justify-center cursor-pointer hover:border-[#3b82f6] transition-colors group">
+            <div class="flex p-1 bg-[#09090b] border border-[#27272a] rounded-lg">
+                <button id="tabIngredient" class="flex-1 py-1.5 text-xs font-medium text-white bg-[#27272a] rounded-md transition-colors" onclick="switchRefMode('ingredient')">Ingredient</button>
+                <button id="tabFrame" class="flex-1 py-1.5 text-xs font-medium text-[#a1a1aa] hover:text-white transition-colors rounded-md" onclick="switchRefMode('frame')">Frame</button>
+            </div>
+            
+            <!-- Ingredient Container -->
+            <div id="referenceBox" class="flex flex-wrap justify-center content-start gap-3 overflow-y-auto p-3 w-full bg-[#09090b] border border-[#27272a] rounded-lg min-h-[90px] max-h-[240px] no-scrollbar mt-2 relative">
+                <div onclick="openReferenceModal('ingredient')" class="flex-shrink-0 w-16 h-16 bg-[#18181b] border border-[#27272a] rounded-xl flex items-center justify-center cursor-pointer hover:border-[#3b82f6] transition-colors group">
                     <svg class="w-6 h-6 text-[#a1a1aa] group-hover:text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                 </div>
-                <!-- Selected assets will populate here -->
+            </div>
+            
+            <!-- Frame Container -->
+            <div id="frameContainer" class="hidden flex items-center justify-center gap-2 p-3 w-full bg-[#09090b] border border-[#27272a] rounded-lg min-h-[90px] mt-2">
+                <!-- Start Box -->
+                <div id="startFrameBox" onclick="openReferenceModal('start')" class="w-20 h-20 bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#3b82f6] transition-colors group relative overflow-hidden">
+                    <span id="startFrameText" class="text-xs font-bold text-[#a1a1aa] group-hover:text-white z-10">Start</span>
+                    <img id="startFrameImg" class="absolute inset-0 w-full h-full object-cover hidden">
+                </div>
+                <!-- Arrow -->
+                <div onclick="swapFrames()" class="flex-shrink-0 w-8 h-8 bg-[#27272a] rounded-lg flex items-center justify-center text-[#a1a1aa] cursor-pointer hover:bg-[#3f3f46] hover:text-white transition-colors" title="Swap Frames">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+                </div>
+                <!-- End Box -->
+                <div id="endFrameBox" onclick="openReferenceModal('end')" class="w-20 h-20 bg-[#18181b] border border-[#27272a] rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-[#3b82f6] transition-colors group relative overflow-hidden">
+                    <span id="endFrameText" class="text-xs font-bold text-[#a1a1aa] group-hover:text-white z-10">End</span>
+                    <img id="endFrameImg" class="absolute inset-0 w-full h-full object-cover hidden">
+                </div>
             </div>
         </div>
         
         <!-- Prompt -->
-        <div class="space-y-1 relative">
+        <div class="space-y-1 relative pt-2">
             <label class="text-[10px] font-bold text-[#a1a1aa] uppercase tracking-wider block mb-2">Prompt</label>
-            <div id="promptInput" contenteditable="true" data-placeholder="Describe the visual change you want..." class="w-full min-h-[200px] max-h-[280px] overflow-y-auto bg-[#09090b] border border-[#27272a] rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-[#3b82f6] no-scrollbar relative empty:before:content-[attr(data-placeholder)] empty:before:text-[#a1a1aa] empty:before:pointer-events-none whitespace-pre-wrap break-words"></div>
+            <div id="promptInput" contenteditable="true" data-placeholder="Describe the visual change you want..." class="w-full min-h-[150px] max-h-[200px] overflow-y-auto bg-[#09090b] border border-[#27272a] rounded-lg px-3 py-3 text-sm text-white focus:outline-none focus:border-[#3b82f6] no-scrollbar relative empty:before:content-[attr(data-placeholder)] empty:before:text-[#a1a1aa] empty:before:pointer-events-none whitespace-pre-wrap break-words"></div>
             <!-- Mention Dropdown -->
             <div id="mentionDropdown" class="absolute bottom-full mb-1 left-0 bg-[#18181b] border border-[#27272a] rounded-lg shadow-xl hidden flex-col max-h-40 overflow-y-auto w-full z-50 p-1"></div>
         </div>
@@ -110,7 +129,74 @@
     <!-- Generate Button -->
     <div class="p-4 bg-[#18181b] border-t border-[#27272a]">
         <button id="generateBtn" class="w-full py-3.5 bg-brand hover:bg-brand/90 text-white font-bold rounded-lg text-sm flex items-center justify-center transition-colors shadow-lg shadow-brand/20">
-            Generate Seedance
+            Generate Omni
         </button>
     </div>
 </aside>
+
+<script>
+    let currentRefMode = 'ingredient';
+    window.startFrameAsset = null;
+    window.endFrameAsset = null;
+    
+    function switchRefMode(mode) {
+        currentRefMode = mode;
+        const tabIng = document.getElementById('tabIngredient');
+        const tabFra = document.getElementById('tabFrame');
+        const contIng = document.getElementById('referenceBox');
+        const contFra = document.getElementById('frameContainer');
+        
+        if (mode === 'ingredient') {
+            tabIng.classList.replace('text-[#a1a1aa]', 'text-white');
+            tabIng.classList.add('bg-[#27272a]');
+            tabFra.classList.replace('text-white', 'text-[#a1a1aa]');
+            tabFra.classList.remove('bg-[#27272a]');
+            contIng.classList.remove('hidden');
+            contIng.classList.add('flex');
+            contFra.classList.add('hidden');
+            contFra.classList.remove('flex');
+        } else {
+            tabFra.classList.replace('text-[#a1a1aa]', 'text-white');
+            tabFra.classList.add('bg-[#27272a]');
+            tabIng.classList.replace('text-white', 'text-[#a1a1aa]');
+            tabIng.classList.remove('bg-[#27272a]');
+            contFra.classList.remove('hidden');
+            contFra.classList.add('flex');
+            contIng.classList.add('hidden');
+            contIng.classList.remove('flex');
+        }
+    }
+
+    function swapFrames() {
+        // Swap internal state
+        const tempAsset = window.startFrameAsset;
+        window.startFrameAsset = window.endFrameAsset;
+        window.endFrameAsset = tempAsset;
+        
+        // Swap UI
+        const startImg = document.getElementById('startFrameImg');
+        const endImg = document.getElementById('endFrameImg');
+        const startTxt = document.getElementById('startFrameText');
+        const endTxt = document.getElementById('endFrameText');
+        
+        const tempSrc = startImg.src;
+        startImg.src = endImg.src;
+        endImg.src = tempSrc;
+        
+        if(window.startFrameAsset) {
+            startImg.classList.remove('hidden');
+            startTxt.classList.add('hidden');
+        } else {
+            startImg.classList.add('hidden');
+            startTxt.classList.remove('hidden');
+        }
+        
+        if(window.endFrameAsset) {
+            endImg.classList.remove('hidden');
+            endTxt.classList.add('hidden');
+        } else {
+            endImg.classList.add('hidden');
+            endTxt.classList.remove('hidden');
+        }
+    }
+</script>

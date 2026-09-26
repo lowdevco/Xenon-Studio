@@ -2,6 +2,8 @@ from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.urls import reverse
 from django.db import models
+import os
+import requests
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.views.decorators.http import require_http_methods
 from django_ratelimit.decorators import ratelimit
@@ -113,9 +115,12 @@ def get_generation_status(request, generation_id):
         # INLINE MOCK PROGRESSION (so user doesn't need celery running for local dev image mock)
         if generation.status in ['QUEUED', 'PROCESSING', 'PENDING'] and ('nano_banana' in generation.model_id or 'gpt_image' in generation.model_id):
             try:
-                from .services.gemini import GeminiService
-                service = GeminiService()
-                if service.mock_mode:
+                service = None
+                if 'nano_banana' in generation.model_id:
+                    from .services.nano_banana import NanoBananaService
+                    service = NanoBananaService()
+                
+                if service and service.mock_mode:
                     if not generation.provider_task_id:
                         generation.provider_task_id = service.generate_image(generation)
                         generation.status = 'PROCESSING'
@@ -133,15 +138,25 @@ def get_generation_status(request, generation_id):
                             generation.progress = 100
                             image_url = task_data.get('image_url')
                             
-                            headers = {"User-Agent": "Mozilla/5.0"}
-                            response = requests.get(image_url, headers=headers, stream=True, timeout=10)
-                            if response.status_code == 200:
-                                filename = f"mock_{generation.id}.jpg"
-                                generation.image_file.save(filename, ContentFile(response.content), save=False)
+                            if image_url and os.path.exists(image_url):
+                                filename = f"imagen_{generation.id}.jpg"
+                                with open(image_url, "rb") as f:
+                                    generation.image_file.save(filename, ContentFile(f.read()), save=False)
                                 generation.status = 'COMPLETED'
+                                try:
+                                    os.remove(image_url)
+                                except Exception:
+                                    pass
                             else:
-                                generation.status = 'FAILED'
-                                generation.error_message = 'Failed to download mock image'
+                                headers = {"User-Agent": "Mozilla/5.0"}
+                                response = requests.get(image_url, headers=headers, stream=True, timeout=10)
+                                if response.status_code == 200:
+                                    filename = f"mock_{generation.id}.jpg"
+                                    generation.image_file.save(filename, ContentFile(response.content), save=False)
+                                    generation.status = 'COMPLETED'
+                                else:
+                                    generation.status = 'FAILED'
+                                    generation.error_message = 'Failed to download image'
                             generation.save(update_fields=['progress', 'image_file', 'status', 'error_message'])
             except Exception as e:
                 print("MOCK ERROR:", str(e))
