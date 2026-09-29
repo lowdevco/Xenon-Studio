@@ -31,9 +31,9 @@ class NanoBananaService:
         if self.mock_mode:
             parts = task_id.split('-')
             if len(parts) >= 4 and parts[0] == 'nano' and parts[1] == 'mock':
-                # parts[2] might be 'nano_banana_2' but split by '-' breaks it because of underscores, so it's fine
-                # Let's just find the timestamp which is the second to last part
-                start_time = int(parts[-2])
+                # The task_id format is nano-mock-{model_id}-{timestamp}-{uuid}
+                # Since model_id has no dashes, the timestamp is always at index 3
+                start_time = int(parts[3])
                 elapsed = time.time() - start_time
                 if elapsed < 8:
                     return {'status': 'running', 'progress': int((elapsed/8.0)*99)}

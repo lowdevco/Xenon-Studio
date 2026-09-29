@@ -18,6 +18,7 @@ media/
 # Static files 
 
 static/
+staticfiles/
 
 # IDE and OS file
 .idea/
